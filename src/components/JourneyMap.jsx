@@ -165,17 +165,28 @@ export default function JourneyMap({ journeyMap, answers }) {
   useEffect(() => {
     if (selected && !personalisedExamples && !examplesLoading) {
       setExamplesLoading(true);
-      getPersonalisedExamples(selected.interventionType, selected.description || selected.summary, answers)
+      const abortController = new AbortController();
+      
+      getPersonalisedExamples(selected.interventionType, selected.description || selected.summary, answers, { signal: abortController.signal })
         .then(examples => {
-          setPersonalisedExamples(examples);
+          if (examples && examples.length > 0) {
+            setPersonalisedExamples(examples);
+          } else {
+            // Fallback to hardcoded examples if no examples returned
+            setPersonalisedExamples(getContextualExamples(selected.interventionType, answers));
+          }
           setExamplesLoading(false);
         })
         .catch(err => {
-          console.error('Failed to fetch personalized examples:', err);
-          // Fallback to hardcoded examples
-          setPersonalisedExamples(getContextualExamples(selected.interventionType, answers));
+          if (err.name !== 'AbortError') {
+            console.error('Failed to fetch personalized examples:', err);
+            // Fallback to hardcoded examples on error
+            setPersonalisedExamples(getContextualExamples(selected.interventionType, answers));
+          }
           setExamplesLoading(false);
         });
+      
+      return () => abortController.abort();
     } else if (!selected) {
       setPersonalisedExamples(null);
       setExamplesLoading(false);

@@ -347,30 +347,22 @@ CONTEXT:
 - Business Problem: ${answers?.businessProblem || 'not specified'}
 - Primary Goals: ${Array.isArray(answers?.primaryGoals) ? answers.primaryGoals.join(', ') : 'not specified'}
 - Risk Level: ${answers?.riskLevel || 'medium'}
-- Current State: ${answers?.currentState || 'not specified'}
-- Data Availability: ${answers?.dataAvailability || 'moderate'}
 
 AI-UX INTERVENTION TYPE: ${interventionType}
 INTERVENTION DESCRIPTION: ${nodeDescription}
 
-INSTRUCTIONS:
-Generate specific, real-world examples that:
-1. Are directly relevant to the user's industry and business problem
-2. Show concrete implementation details, not just theoretical use cases
-3. Include specific metrics or outcomes when possible
-4. Are actionable and implementable for the user's context
-5. Can be similar projects/problems if exact matches don't exist
+Generate specific, real-world examples that are directly relevant to the user's industry and business problem. Include concrete implementation details and specific metrics when possible.
 
-Format your response as a JSON array with exactly this structure (3-5 items):
+Format your response as a JSON array with this structure (3-5 items only):
 [
   {
-    "product": "Specific product/company name or project example",
-    "description": "Detailed description of how this example applies the intervention, including specific implementation details and outcomes",
-    "relevance": "Why this is relevant and directly implementable for the user's ${answers?.industry || 'general'} use case"
+    "product": "Product/Company/Project name",
+    "description": "Detailed description of implementation and outcomes",
+    "relevance": "Why this is relevant for the user's use case"
   }
 ]
 
-Return ONLY the JSON array, no other text.`;
+Return ONLY valid JSON, no additional text.`;
 
   const body = JSON.stringify({
     contents: [
@@ -382,47 +374,70 @@ Return ONLY the JSON array, no other text.`;
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0.7,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 1024,
     },
   });
 
-  try {
+  const MAX_RETRIES = 2;
+  
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     if (signal) {
       signal.addEventListener('abort', () => controller.abort(), { once: true });
     }
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body,
-    });
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body,
+      });
 
-    clearTimeout(timeout);
+      clearTimeout(timeout);
 
-    if (!response.ok) {
-      throw new Error(`Failed to generate examples: ${response.status}`);
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '');
+        if (response.status === 429 && attempt < MAX_RETRIES) {
+          const delay = 1000 * Math.pow(2, attempt) + Math.random() * 500;
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(resolve, delay);
+            if (signal) {
+              signal.addEventListener('abort', () => {
+                clearTimeout(timer);
+                reject(new DOMException('Aborted', 'AbortError'));
+              }, { once: true });
+            }
+          });
+          continue;
+        }
+        throw new Error(`API Error (${response.status}): ${errorBody}`);
+      }
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        throw new Error('Empty response from AI service.');
+      }
+
+      const examples = JSON.parse(text);
+      return Array.isArray(examples) ? examples : [];
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        throw err;
+      }
+      if (attempt === MAX_RETRIES) {
+        throw err;
+      }
     }
-
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!text) {
-      throw new Error('Empty response from AI service.');
-    }
-
-    const examples = JSON.parse(text);
-    return Array.isArray(examples) ? examples : [];
-  } catch (err) {
-    console.error('Error generating personalised examples:', err);
-    throw err;
   }
 }
 
