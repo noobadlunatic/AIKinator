@@ -16,7 +16,7 @@ function Section({ title, children }) {
 
 export default function JourneyMap({ journeyMap, answers }) {
   const [selectedNode, setSelectedNode] = useState(null);
-  const [personalisedExamples, setPersonalisedExamples] = useState(null);
+  const [personalisedExamples, setPersonalisedExamples] = useState({});
   const [examplesLoading, setExamplesLoading] = useState(false);
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -163,17 +163,31 @@ export default function JourneyMap({ journeyMap, answers }) {
 
   // Fetch personalized examples when node is selected
   useEffect(() => {
-    if (selected && !personalisedExamples && !examplesLoading) {
+    if (selected) {
+      const nodeId = selected.id;
+      
+      // Check if we already have examples for this node
+      if (personalisedExamples[nodeId]) {
+        setExamplesLoading(false);
+        return;
+      }
+      
       setExamplesLoading(true);
       const abortController = new AbortController();
       
       getPersonalisedExamples(selected.interventionType, selected.description || selected.summary, answers, { signal: abortController.signal })
         .then(examples => {
           if (examples && examples.length > 0) {
-            setPersonalisedExamples(examples);
+            setPersonalisedExamples(prev => ({
+              ...prev,
+              [nodeId]: examples
+            }));
           } else {
             // Fallback to hardcoded examples if no examples returned
-            setPersonalisedExamples(getContextualExamples(selected.interventionType, answers));
+            setPersonalisedExamples(prev => ({
+              ...prev,
+              [nodeId]: getContextualExamples(selected.interventionType, answers)
+            }));
           }
           setExamplesLoading(false);
         })
@@ -181,15 +195,15 @@ export default function JourneyMap({ journeyMap, answers }) {
           if (err.name !== 'AbortError') {
             console.error('Failed to fetch personalized examples:', err);
             // Fallback to hardcoded examples on error
-            setPersonalisedExamples(getContextualExamples(selected.interventionType, answers));
+            setPersonalisedExamples(prev => ({
+              ...prev,
+              [nodeId]: getContextualExamples(selected.interventionType, answers)
+            }));
           }
           setExamplesLoading(false);
         });
       
       return () => abortController.abort();
-    } else if (!selected) {
-      setPersonalisedExamples(null);
-      setExamplesLoading(false);
     }
   }, [selected, answers]);
 
@@ -307,8 +321,8 @@ export default function JourneyMap({ journeyMap, answers }) {
                       <p className="text-xs text-text-muted">Generating personalized examples...</p>
                     </div>
                   </div>
-                ) : personalisedExamples && personalisedExamples.length > 0 ? (
-                  personalisedExamples.map((example, i) => (
+                ) : personalisedExamples[selected?.id] && personalisedExamples[selected?.id].length > 0 ? (
+                  personalisedExamples[selected?.id].map((example, i) => (
                     <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light hover:border-accent/30 transition-colors">
                       <p className="text-sm font-medium text-primary">{example.product}</p>
                       <p className="text-xs text-text-muted mt-0.5">{example.description}</p>
