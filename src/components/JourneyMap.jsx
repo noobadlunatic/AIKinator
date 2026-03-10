@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { computeLayout, getEdgePath } from '../utils/journeyLayout';
 import { getTypeColor, getTypeName } from '../data/taxonomy';
+import { getPersonalisedExamples } from '../services/ai';
 import ConfidenceScore from './ConfidenceScore';
 import AutonomyScale from './AutonomyScale';
 
@@ -15,6 +16,8 @@ function Section({ title, children }) {
 
 export default function JourneyMap({ journeyMap, answers }) {
   const [selectedNode, setSelectedNode] = useState(null);
+  const [personalisedExamples, setPersonalisedExamples] = useState(null);
+  const [examplesLoading, setExamplesLoading] = useState(false);
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
 
@@ -158,10 +161,31 @@ export default function JourneyMap({ journeyMap, answers }) {
     return industryExamples.slice(0, 3);
   };
 
+  // Fetch personalized examples when node is selected
+  useEffect(() => {
+    if (selected && !personalisedExamples && !examplesLoading) {
+      setExamplesLoading(true);
+      getPersonalisedExamples(selected.interventionType, selected.description || selected.summary, answers)
+        .then(examples => {
+          setPersonalisedExamples(examples);
+          setExamplesLoading(false);
+        })
+        .catch(err => {
+          console.error('Failed to fetch personalized examples:', err);
+          // Fallback to hardcoded examples
+          setPersonalisedExamples(getContextualExamples(selected.interventionType, answers));
+          setExamplesLoading(false);
+        });
+    } else if (!selected) {
+      setPersonalisedExamples(null);
+      setExamplesLoading(false);
+    }
+  }, [selected, answers]);
+
   return (
     <div>
       <h3 className="font-heading text-lg text-primary mb-1">{journeyMap.title || 'User Journey Map'}</h3>
-      <p className="text-xs text-accent font-medium mb-4">Click on any node to explore detailed recommendations and examples</p>
+      <p className="text-sm text-accent font-semibold mb-6 p-3 bg-accent/10 rounded-lg border border-accent/20">✨ Click on any node to explore detailed recommendations and personalised AI-UX inspirations tailored to your use case</p>
 
       <div ref={containerRef} className="relative bg-bg-card border border-border-light rounded-xl overflow-x-auto">
         {/* SVG layer for edges */}
@@ -262,16 +286,29 @@ export default function JourneyMap({ journeyMap, answers }) {
               <p className="text-sm text-text font-medium leading-relaxed">{selected.summary}</p>
             )}
 
-            {/* Real-World Examples */}
-            <Section title="Real-World Examples">
+            {/* Personalised AI-UX Inspirations */}
+            <Section title="Personalised AI-UX Inspirations for You">
               <div className="space-y-3">
-                {getContextualExamples(selected.interventionType, answers).map((example, i) => (
-                  <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                    <p className="text-sm font-medium text-primary">{example.product}</p>
-                    <p className="text-xs text-text-muted mt-0.5">{example.description}</p>
-                    <p className="text-xs text-accent mt-1 italic">{example.relevance}</p>
+                {examplesLoading ? (
+                  <div className="p-4 rounded-lg bg-primary/[0.02] border border-border-light flex items-center justify-center min-h-[100px]">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                      <p className="text-xs text-text-muted">Generating personalized examples...</p>
+                    </div>
                   </div>
-                ))}
+                ) : personalisedExamples && personalisedExamples.length > 0 ? (
+                  personalisedExamples.map((example, i) => (
+                    <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light hover:border-accent/30 transition-colors">
+                      <p className="text-sm font-medium text-primary">{example.product}</p>
+                      <p className="text-xs text-text-muted mt-0.5">{example.description}</p>
+                      <p className="text-xs text-accent mt-1 italic">{example.relevance}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                    <p className="text-xs text-text-muted">No examples available</p>
+                  </div>
+                )}
               </div>
             </Section>
 

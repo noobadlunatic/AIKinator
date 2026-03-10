@@ -334,3 +334,95 @@ export async function getRecommendation(answers, { signal } = {}) {
     }
   }
 }
+
+export async function getPersonalisedExamples(interventionType, nodeDescription, answers, { signal } = {}) {
+  if (!API_KEY) {
+    throw new Error('API key not configured.');
+  }
+
+  const prompt = `You are an expert in AI-UX design and product strategy. Generate 3-5 specific, actionable, and directly implementable real-world examples for the following AI-UX intervention.
+
+CONTEXT:
+- Industry: ${answers?.industry || 'general'}
+- Business Problem: ${answers?.businessProblem || 'not specified'}
+- Primary Goals: ${Array.isArray(answers?.primaryGoals) ? answers.primaryGoals.join(', ') : 'not specified'}
+- Risk Level: ${answers?.riskLevel || 'medium'}
+- Current State: ${answers?.currentState || 'not specified'}
+- Data Availability: ${answers?.dataAvailability || 'moderate'}
+
+AI-UX INTERVENTION TYPE: ${interventionType}
+INTERVENTION DESCRIPTION: ${nodeDescription}
+
+INSTRUCTIONS:
+Generate specific, real-world examples that:
+1. Are directly relevant to the user's industry and business problem
+2. Show concrete implementation details, not just theoretical use cases
+3. Include specific metrics or outcomes when possible
+4. Are actionable and implementable for the user's context
+5. Can be similar projects/problems if exact matches don't exist
+
+Format your response as a JSON array with exactly this structure (3-5 items):
+[
+  {
+    "product": "Specific product/company name or project example",
+    "description": "Detailed description of how this example applies the intervention, including specific implementation details and outcomes",
+    "relevance": "Why this is relevant and directly implementable for the user's ${answers?.industry || 'general'} use case"
+  }
+]
+
+Return ONLY the JSON array, no other text.`;
+
+  const body = JSON.stringify({
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: prompt }],
+      },
+    ],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      temperature: 0.7,
+      maxOutputTokens: 2048,
+    },
+  });
+
+  try {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    if (signal) {
+      signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate examples: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!text) {
+      throw new Error('Empty response from AI service.');
+    }
+
+    const examples = JSON.parse(text);
+    return Array.isArray(examples) ? examples : [];
+  } catch (err) {
+    console.error('Error generating personalised examples:', err);
+    throw err;
+  }
+}
+
