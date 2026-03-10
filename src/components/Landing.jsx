@@ -20,7 +20,7 @@ export default function Landing() {
           </div>
 
           <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl text-primary mb-4">
-            AI-UX Compass
+            AIkinator
           </h1>
           <p className="text-lg md:text-xl text-accent font-medium mb-3">
             Find the right AI intervention for your product
