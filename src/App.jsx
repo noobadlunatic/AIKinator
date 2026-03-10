@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AssessmentProvider, useAssessment } from './hooks/useAssessment';
 import { useAIRecommendation } from './hooks/useAIRecommendation';
 import { getSharedDataFromUrl } from './services/sharing';
@@ -13,6 +14,7 @@ export default function App() {
     <ErrorBoundary>
       <AssessmentProvider>
         <AppRouter />
+        <Analytics />
       </AssessmentProvider>
     </ErrorBoundary>
   );
