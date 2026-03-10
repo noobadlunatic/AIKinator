@@ -154,7 +154,7 @@ export default function Results() {
         </div>
 
         {/* Journey Map — full width */}
-        <JourneyMap journeyMap={journeyMap} />
+        <JourneyMap journeyMap={journeyMap} answers={answers} />
 
         {/* Why Not section — collapsible */}
         {whyNot?.length > 0 && (

@@ -13,7 +13,7 @@ function Section({ title, children }) {
   );
 }
 
-export default function JourneyMap({ journeyMap }) {
+export default function JourneyMap({ journeyMap, answers }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(800);
@@ -71,6 +71,91 @@ export default function JourneyMap({ journeyMap }) {
       return node.autonomyLevel.aiRole || '';
     }
     return '';
+  };
+
+  // Generate contextual real-world examples based on intervention type and business context
+  const getContextualExamples = (interventionType, answers) => {
+    const industry = answers?.industry || 'general';
+    const riskLevel = answers?.riskLevel || 'medium';
+    const examples = [];
+
+    // Base examples by intervention type
+    const typeExamples = {
+      advisory: [
+        {
+          product: 'IBM Watson Health Advisor',
+          description: 'AI analyzes patient symptoms and medical history to provide diagnostic suggestions that physicians review and validate.',
+          relevance: 'Perfect for healthcare applications where human expertise must always have final authority.'
+        },
+        {
+          product: 'JPMorgan Contract Analysis',
+          description: 'AI reviews legal contracts and flags potential risks or unusual terms for human lawyers to review.',
+          relevance: 'Ideal for legal and compliance-heavy industries requiring expert oversight.'
+        },
+        {
+          product: 'Khan Academy Personalized Learning',
+          description: 'AI assesses student performance and recommends specific exercises, while teachers guide the overall learning strategy.',
+          relevance: 'Excellent for educational platforms balancing AI recommendations with human mentorship.'
+        }
+      ],
+      collaborative: [
+        {
+          product: 'Figma AI Design Assistant',
+          description: 'AI suggests design improvements and alternatives while designers make final creative decisions.',
+          relevance: 'Great for creative industries where AI enhances but doesn\'t replace human creativity.'
+        },
+        {
+          product: 'GitHub Copilot',
+          description: 'AI provides code suggestions and autocompletion while developers maintain control over architecture and logic.',
+          relevance: 'Essential for software development teams looking to accelerate coding without compromising quality.'
+        },
+        {
+          product: 'Grammarly Business',
+          description: 'AI flags writing issues and suggests improvements, with human writers making final editorial decisions.',
+          relevance: 'Perfect for content creation where maintaining brand voice is crucial.'
+        }
+      ],
+      autonomous: [
+        {
+          product: 'Tesla Autopilot',
+          description: 'AI handles routine driving tasks with constant human monitoring and intervention capability.',
+          relevance: 'Suitable for high-stakes environments where AI efficiency meets human safety oversight.'
+        },
+        {
+          product: 'Amazon Warehouse Robots',
+          description: 'AI-powered robots handle inventory movement while human workers manage complex tasks and oversight.',
+          relevance: 'Ideal for logistics operations requiring speed and precision with human supervision.'
+        }
+      ],
+      monitoring: [
+        {
+          product: 'Darktrace Network Security',
+          description: 'AI continuously monitors network traffic and alerts human security teams to potential threats.',
+          relevance: 'Critical for cybersecurity where AI detects anomalies but humans handle investigation and response.'
+        },
+        {
+          product: 'Splunk IT Monitoring',
+          description: 'AI analyzes system logs and performance metrics, alerting human IT teams to potential issues.',
+          relevance: 'Essential for IT operations requiring 24/7 monitoring with human problem-solving.'
+        }
+      ]
+    };
+
+    // Get examples for the specific intervention type
+    const baseExamples = typeExamples[interventionType] || typeExamples.advisory;
+
+    // Filter or prioritize examples based on industry
+    const industryExamples = baseExamples.filter(example => {
+      if (industry === 'healthcare' && example.product.includes('Health')) return true;
+      if (industry === 'finance' && example.product.includes('JPMorgan')) return true;
+      if (industry === 'education' && example.product.includes('Khan')) return true;
+      if (industry === 'technology' && (example.product.includes('GitHub') || example.product.includes('Figma'))) return true;
+      if (industry === 'retail' && example.product.includes('Amazon')) return true;
+      return true; // Include all if no specific match
+    });
+
+    // Return up to 3 most relevant examples
+    return industryExamples.slice(0, 3);
   };
 
   return (
@@ -180,40 +265,13 @@ export default function JourneyMap({ journeyMap }) {
             {/* Real-World Examples */}
             <Section title="Real-World Examples">
               <div className="space-y-3">
-                {/* Example 1: E-commerce personalization */}
-                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                  <p className="text-sm font-medium text-primary">Amazon Product Recommendations</p>
-                  <p className="text-xs text-text-muted mt-0.5">Personalized product suggestions based on browsing history and purchase patterns, increasing conversion rates by 20-30%.</p>
-                  <p className="text-xs text-accent mt-1 italic">Perfect for e-commerce platforms with large product catalogs and user behavior data.</p>
-                </div>
-
-                {/* Example 2: Content creation assistance */}
-                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                  <p className="text-sm font-medium text-primary">Grammarly Writing Assistant</p>
-                  <p className="text-xs text-text-muted mt-0.5">Real-time grammar, style, and tone suggestions that help writers improve content quality without taking over the creative process.</p>
-                  <p className="text-xs text-accent mt-1 italic">Ideal for content platforms where maintaining author voice is crucial while improving quality.</p>
-                </div>
-
-                {/* Example 3: Customer service automation */}
-                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                  <p className="text-sm font-medium text-primary">Zendesk Chatbots</p>
-                  <p className="text-xs text-text-muted mt-0.5">AI-powered chatbots handle routine inquiries while seamlessly escalating complex issues to human agents.</p>
-                  <p className="text-xs text-accent mt-1 italic">Excellent for customer service teams dealing with high volume of similar queries.</p>
-                </div>
-
-                {/* Example 4: Code review assistance */}
-                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                  <p className="text-sm font-medium text-primary">GitHub Copilot Code Suggestions</p>
-                  <p className="text-xs text-text-muted mt-0.5">Context-aware code completion and suggestions that accelerate development while maintaining code quality standards.</p>
-                  <p className="text-xs text-accent mt-1 italic">Great for development teams looking to increase productivity without compromising on code quality.</p>
-                </div>
-
-                {/* Example 5: Medical diagnosis support */}
-                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                  <p className="text-sm font-medium text-primary">IBM Watson Health Assistant</p>
-                  <p className="text-xs text-text-muted mt-0.5">AI analyzes patient symptoms and medical history to provide diagnostic suggestions that physicians review and validate.</p>
-                  <p className="text-xs text-accent mt-1 italic">Critical for healthcare applications where human expertise must always have final authority.</p>
-                </div>
+                {getContextualExamples(selected.interventionType, answers).map((example, i) => (
+                  <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                    <p className="text-sm font-medium text-primary">{example.product}</p>
+                    <p className="text-xs text-text-muted mt-0.5">{example.description}</p>
+                    <p className="text-xs text-accent mt-1 italic">{example.relevance}</p>
+                  </div>
+                ))}
               </div>
             </Section>
 
@@ -223,23 +281,6 @@ export default function JourneyMap({ journeyMap }) {
               humanRole={getAutonomyHumanRole(selected)}
               aiRole={getAutonomyAiRole(selected)}
             />
-
-            {/* Examples */}
-            {selected.examples?.length > 0 && (
-              <Section title="Real-World Examples">
-                <div className="space-y-3">
-                  {selected.examples.map((ex, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                      <p className="text-sm font-medium text-primary">{ex.product}</p>
-                      <p className="text-xs text-text-muted mt-0.5">{ex.description}</p>
-                      {ex.relevance && (
-                        <p className="text-xs text-accent mt-1 italic">{ex.relevance}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            )}
 
             {/* Pros & Cons */}
             {(selected.pros?.length > 0 || selected.cons?.length > 0) && (
