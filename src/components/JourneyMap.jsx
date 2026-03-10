@@ -76,9 +76,7 @@ export default function JourneyMap({ journeyMap }) {
   return (
     <div>
       <h3 className="font-heading text-lg text-primary mb-1">{journeyMap.title || 'User Journey Map'}</h3>
-      {journeyMap.description && (
-        <p className="text-xs text-text-muted mb-4">{journeyMap.description}</p>
-      )}
+      <p className="text-xs text-accent font-medium mb-4">Click on any node to explore detailed recommendations and examples</p>
 
       <div ref={containerRef} className="relative bg-bg-card border border-border-light rounded-xl overflow-x-auto">
         {/* SVG layer for edges */}
@@ -179,19 +177,45 @@ export default function JourneyMap({ journeyMap }) {
               <p className="text-sm text-text font-medium leading-relaxed">{selected.summary}</p>
             )}
 
-            {/* Description */}
-            {selected.description && (
-              <p className="text-sm text-text-muted leading-relaxed whitespace-pre-line">{selected.description}</p>
-            )}
-
-            {/* Context Fit */}
-            {selected.contextFit && (
-              <Section title="Fit for Your Context">
-                <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
-                  <p className="text-sm text-text leading-relaxed">{selected.contextFit}</p>
+            {/* Real-World Examples */}
+            <Section title="Real-World Examples">
+              <div className="space-y-3">
+                {/* Example 1: E-commerce personalization */}
+                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                  <p className="text-sm font-medium text-primary">Amazon Product Recommendations</p>
+                  <p className="text-xs text-text-muted mt-0.5">Personalized product suggestions based on browsing history and purchase patterns, increasing conversion rates by 20-30%.</p>
+                  <p className="text-xs text-accent mt-1 italic">Perfect for e-commerce platforms with large product catalogs and user behavior data.</p>
                 </div>
-              </Section>
-            )}
+
+                {/* Example 2: Content creation assistance */}
+                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                  <p className="text-sm font-medium text-primary">Grammarly Writing Assistant</p>
+                  <p className="text-xs text-text-muted mt-0.5">Real-time grammar, style, and tone suggestions that help writers improve content quality without taking over the creative process.</p>
+                  <p className="text-xs text-accent mt-1 italic">Ideal for content platforms where maintaining author voice is crucial while improving quality.</p>
+                </div>
+
+                {/* Example 3: Customer service automation */}
+                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                  <p className="text-sm font-medium text-primary">Zendesk Chatbots</p>
+                  <p className="text-xs text-text-muted mt-0.5">AI-powered chatbots handle routine inquiries while seamlessly escalating complex issues to human agents.</p>
+                  <p className="text-xs text-accent mt-1 italic">Excellent for customer service teams dealing with high volume of similar queries.</p>
+                </div>
+
+                {/* Example 4: Code review assistance */}
+                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                  <p className="text-sm font-medium text-primary">GitHub Copilot Code Suggestions</p>
+                  <p className="text-xs text-text-muted mt-0.5">Context-aware code completion and suggestions that accelerate development while maintaining code quality standards.</p>
+                  <p className="text-xs text-accent mt-1 italic">Great for development teams looking to increase productivity without compromising on code quality.</p>
+                </div>
+
+                {/* Example 5: Medical diagnosis support */}
+                <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
+                  <p className="text-sm font-medium text-primary">IBM Watson Health Assistant</p>
+                  <p className="text-xs text-text-muted mt-0.5">AI analyzes patient symptoms and medical history to provide diagnostic suggestions that physicians review and validate.</p>
+                  <p className="text-xs text-accent mt-1 italic">Critical for healthcare applications where human expertise must always have final authority.</p>
+                </div>
+              </div>
+            </Section>
 
             {/* Autonomy Scale */}
             <AutonomyScale
