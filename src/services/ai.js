@@ -233,6 +233,22 @@ function validateResponse(data) {
   if (!data.journeyMap.edges) data.journeyMap.edges = [];
   if (!data.whyNot) data.whyNot = [];
 
+  // Validate edges: keep only those referencing valid node IDs
+  const nodeIds = new Set(data.journeyMap.nodes.map(n => n.id));
+  data.journeyMap.edges = data.journeyMap.edges.filter(
+    e => nodeIds.has(e.from) && nodeIds.has(e.to)
+  );
+
+  // If no valid edges remain, generate a sequential chain
+  if (data.journeyMap.edges.length === 0 && data.journeyMap.nodes.length > 1) {
+    for (let i = 0; i < data.journeyMap.nodes.length - 1; i++) {
+      data.journeyMap.edges.push({
+        from: data.journeyMap.nodes[i].id,
+        to: data.journeyMap.nodes[i + 1].id,
+      });
+    }
+  }
+
   return data;
 }
 

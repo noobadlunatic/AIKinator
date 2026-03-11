@@ -34,6 +34,16 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
     if (layers[n.id] === undefined) layers[n.id] = 0;
   });
 
+  // Fallback: if all nodes ended up in the same layer (e.g., no valid edges),
+  // force sequential layers based on array order to guarantee horizontal flow.
+  const uniqueLayers = new Set(Object.values(layers));
+  const usedFallback = uniqueLayers.size <= 1 && nodes.length > 1;
+  if (usedFallback) {
+    nodes.forEach((n, i) => {
+      layers[n.id] = i;
+    });
+  }
+
   // Group nodes by layer
   const layerGroups = {};
   let maxLayer = 0;
@@ -45,7 +55,7 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
   });
 
   // Compute positions
-  const nodeSize = 120;
+  const nodeSize = 100;
   const padding = 40;
   const numLayers = maxLayer + 1;
 
@@ -57,19 +67,35 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
 
     let x, y;
     if (horizontal) {
-      const layerSpacing = Math.max(nodeSize + 40, (containerWidth - padding * 2) / Math.max(numLayers, 1));
-      const siblingSpacing = Math.max(nodeSize, (containerHeight - padding * 2) / Math.max(numInLayer, 1));
+      const layerSpacing = Math.max(nodeSize + 80, (containerWidth - padding * 2) / Math.max(numLayers, 1));
+      const siblingSpacing = Math.max(nodeSize + 20, (containerHeight - padding * 2) / Math.max(numInLayer, 1));
       x = padding + layer * layerSpacing + layerSpacing / 2;
       y = padding + indexInLayer * siblingSpacing + siblingSpacing / 2;
     } else {
-      const layerSpacing = Math.max(nodeSize + 20, (containerHeight - padding * 2) / Math.max(numLayers, 1));
-      const siblingSpacing = Math.max(nodeSize + 20, (containerWidth - padding * 2) / Math.max(numInLayer, 1));
+      const layerSpacing = Math.max(nodeSize + 40, (containerHeight - padding * 2) / Math.max(numLayers, 1));
+      const siblingSpacing = Math.max(nodeSize + 40, (containerWidth - padding * 2) / Math.max(numInLayer, 1));
       x = padding + indexInLayer * siblingSpacing + siblingSpacing / 2;
       y = padding + layer * layerSpacing + layerSpacing / 2;
     }
 
     return { ...n, x, y, layer };
   });
+
+  // Build positioned node lookup for edge validation
+  const posNodeMap = {};
+  positioned.forEach(n => { posNodeMap[n.id] = n; });
+
+  // If fallback was used and no valid edges exist, synthesize a sequential chain
+  let finalEdges = edges;
+  if (usedFallback) {
+    const hasValidEdges = edges.some(e => posNodeMap[e.from] && posNodeMap[e.to]);
+    if (!hasValidEdges) {
+      finalEdges = [];
+      for (let i = 0; i < positioned.length - 1; i++) {
+        finalEdges.push({ from: positioned[i].id, to: positioned[i + 1].id });
+      }
+    }
+  }
 
   // Compute required dimensions
   const xs = positioned.map(n => n.x);
@@ -79,7 +105,7 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
 
   return {
     nodes: positioned,
-    edges: edges,
+    edges: finalEdges,
     width: computedWidth,
     height: computedHeight,
   };
@@ -89,19 +115,21 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
 export function getEdgePath(fromNode, toNode, horizontal = true) {
   if (!fromNode || !toNode) return '';
 
-  const offset = 40;
+  const nodeRadius = 48; // half of rendered node width (w-24 = 96px / 2)
   const x1 = fromNode.x;
   const y1 = fromNode.y;
   const x2 = toNode.x;
   const y2 = toNode.y;
 
   if (horizontal) {
-    const cx1 = x1 + offset;
-    const cx2 = x2 - offset;
-    return `M ${x1 + 50} ${y1} C ${cx1 + 50} ${y1}, ${cx2 - 50} ${y2}, ${x2 - 50} ${y2}`;
+    const startX = x1 + nodeRadius;
+    const endX = x2 - nodeRadius;
+    const dx = (endX - startX) * 0.4;
+    return `M ${startX} ${y1} C ${startX + dx} ${y1}, ${endX - dx} ${y2}, ${endX} ${y2}`;
   } else {
-    const cy1 = y1 + offset;
-    const cy2 = y2 - offset;
-    return `M ${x1} ${y1 + 40} C ${x1} ${cy1 + 40}, ${x2} ${cy2 - 40}, ${x2} ${y2 - 40}`;
+    const startY = y1 + nodeRadius;
+    const endY = y2 - nodeRadius;
+    const dy = (endY - startY) * 0.4;
+    return `M ${x1} ${startY} C ${x1} ${startY + dy}, ${x2} ${endY - dy}, ${x2} ${endY}`;
   }
 }

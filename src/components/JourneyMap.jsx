@@ -23,7 +23,7 @@ export default function JourneyMap({ journeyMap, answers }) {
 
   const numNodes = journeyMap?.nodes?.length || 4;
   const NODE_SPACING = 220;
-  const CONTAINER_HEIGHT = 160;
+  const CONTAINER_HEIGHT = 200;
   const layoutWidth = Math.max(containerWidth, numNodes * NODE_SPACING);
 
   useEffect(() => {
@@ -240,7 +240,7 @@ export default function JourneyMap({ journeyMap, answers }) {
                 {edge.label && (
                   <text
                     x={(from.x + to.x) / 2}
-                    y={(from.y + to.y) / 2 - 8}
+                    y={Math.min(from.y, to.y) - 20}
                     textAnchor="middle"
                     className="text-[9px] fill-text-light"
                   >
