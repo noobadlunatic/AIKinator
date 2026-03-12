@@ -356,29 +356,33 @@ export async function getPersonalisedExamples(interventionType, nodeDescription,
     throw new Error('API key not configured.');
   }
 
-  const prompt = `You are an expert in AI-UX design and product strategy. Generate 3-5 specific, actionable, and directly implementable real-world examples for the following AI-UX intervention.
+  const prompt = `You are a senior AI-UX designer. Generate 3-4 interaction-pattern inspirations for the following AI-UX intervention.
 
 CONTEXT:
-- Industry: ${answers?.industry || 'general'}
-- Business Problem: ${answers?.businessProblem || 'not specified'}
+- Domain: ${answers?.industry || 'general'}
+- User Problem: ${answers?.problemDescription || 'not specified'}
 - Primary Goals: ${Array.isArray(answers?.primaryGoals) ? answers.primaryGoals.join(', ') : 'not specified'}
 - Risk Level: ${answers?.riskLevel || 'medium'}
 
-AI-UX INTERVENTION TYPE: ${interventionType}
-INTERVENTION DESCRIPTION: ${nodeDescription}
+INTERVENTION TYPE: ${interventionType}
+STAGE DESCRIPTION: ${nodeDescription}
 
-Generate specific, real-world examples that are directly relevant to the user's industry and business problem. Include concrete implementation details and specific metrics when possible.
+Rules:
+- Focus purely on UX and interaction design, NOT business strategy or ROI.
+- Each inspiration must name a concrete UI pattern or micro-interaction (e.g., inline tooltip, skeleton loader, dismissible chip, confidence badge, progressive disclosure drawer).
+- "howItWorks" must describe what the USER sees and does — max 2 sentences.
+- "designTip" must be one actionable design heuristic the reader can apply today.
+- Keep everything concise. No marketing language. No metrics.
 
-Format your response as a JSON array with this structure (3-5 items only):
+Return a JSON array (3-4 items):
 [
   {
-    "product": "Product/Company/Project name",
-    "description": "Detailed description of implementation and outcomes",
-    "relevance": "Why this is relevant for the user's use case"
+    "pattern": "Name of UI/interaction pattern (max 6 words)",
+    "reference": "Real product that uses this (just the name)",
+    "howItWorks": "What the user sees and does. Max 2 sentences. Must mention a specific UI element.",
+    "designTip": "One actionable design heuristic. Max 1 sentence."
   }
-]
-
-Return ONLY valid JSON, no additional text.`;
+]`;
 
   const body = JSON.stringify({
     contents: [

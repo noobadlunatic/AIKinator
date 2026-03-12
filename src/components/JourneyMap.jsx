@@ -76,89 +76,178 @@ export default function JourneyMap({ journeyMap, answers }) {
     return '';
   };
 
-  // Generate contextual real-world examples based on intervention type and business context
-  const getContextualExamples = (interventionType, answers) => {
-    const industry = answers?.industry || 'general';
-    const riskLevel = answers?.riskLevel || 'medium';
-    const examples = [];
-
-    // Base examples by intervention type
+  // Fallback UX pattern inspirations by intervention type
+  const getContextualExamples = (interventionType) => {
     const typeExamples = {
       advisory: [
         {
-          product: 'IBM Watson Health Advisor',
-          description: 'AI analyzes patient symptoms and medical history to provide diagnostic suggestions that physicians review and validate.',
-          relevance: 'Perfect for healthcare applications where human expertise must always have final authority.'
+          pattern: 'Confidence-scored suggestion cards',
+          reference: 'Viz.ai',
+          howItWorks: 'Each AI recommendation renders as a card with a color-coded confidence bar. Cards below the threshold collapse by default, requiring a tap to expand.',
+          designTip: 'Place the confidence indicator on the left edge so users can scan a vertical list at a glance.'
         },
         {
-          product: 'JPMorgan Contract Analysis',
-          description: 'AI reviews legal contracts and flags potential risks or unusual terms for human lawyers to review.',
-          relevance: 'Ideal for legal and compliance-heavy industries requiring expert oversight.'
+          pattern: 'Side-by-side option comparison',
+          reference: 'Google Maps',
+          howItWorks: 'AI presents 2-3 options in columns with key trade-offs highlighted. The user taps to select and unchosen options animate away.',
+          designTip: 'Limit comparisons to 3 options max — more triggers choice paralysis.'
         },
         {
-          product: 'Khan Academy Personalized Learning',
-          description: 'AI assesses student performance and recommends specific exercises, while teachers guide the overall learning strategy.',
-          relevance: 'Excellent for educational platforms balancing AI recommendations with human mentorship.'
+          pattern: 'Explainability tooltip on hover',
+          reference: 'Vanguard Digital Advisor',
+          howItWorks: 'A small "why?" link next to each recommendation opens an inline tooltip showing the top 3 factors behind the suggestion.',
+          designTip: 'Use progressive disclosure — show the explanation only on demand so the default view stays clean.'
+        }
+      ],
+      suggestive: [
+        {
+          pattern: 'Dismissible suggestion chips',
+          reference: 'Gmail Smart Compose',
+          howItWorks: 'Small pill-shaped chips appear above the input area suggesting next actions. Tapping a chip auto-fills; swiping dismisses it.',
+          designTip: 'Limit to 3 chips at a time — more than that makes the suggestions feel noisy rather than helpful.'
+        },
+        {
+          pattern: 'Contextual nudge banner',
+          reference: 'Spotify Discover Weekly',
+          howItWorks: 'A subtle banner slides in at a natural pause point suggesting relevant content. It auto-dismisses after 5 seconds if ignored.',
+          designTip: 'Trigger nudges at transition moments (page load, task completion), not mid-task where they disrupt flow.'
         }
       ],
       collaborative: [
         {
-          product: 'Figma AI Design Assistant',
-          description: 'AI suggests design improvements and alternatives while designers make final creative decisions.',
-          relevance: 'Great for creative industries where AI enhances but doesn\'t replace human creativity.'
+          pattern: 'Ghost-text inline completion',
+          reference: 'GitHub Copilot',
+          howItWorks: 'AI renders a suggestion in dimmed text ahead of the cursor. User presses Tab to accept or keeps typing to dismiss.',
+          designTip: 'Use 40-50% opacity for ghost text — too faint is invisible, too strong looks committed.'
         },
         {
-          product: 'GitHub Copilot',
-          description: 'AI provides code suggestions and autocompletion while developers maintain control over architecture and logic.',
-          relevance: 'Essential for software development teams looking to accelerate coding without compromising quality.'
+          pattern: 'AI-generated variant carousel',
+          reference: 'Figma AI',
+          howItWorks: 'After the user creates a design, AI generates 3 alternate variations in a horizontal carousel. User swipes to browse and taps to adopt.',
+          designTip: 'Show the user\'s original alongside AI variants so they always have a clear baseline for comparison.'
         },
         {
-          product: 'Grammarly Business',
-          description: 'AI flags writing issues and suggests improvements, with human writers making final editorial decisions.',
-          relevance: 'Perfect for content creation where maintaining brand voice is crucial.'
+          pattern: 'Accept/edit/reject action bar',
+          reference: 'Grammarly',
+          howItWorks: 'Each AI suggestion includes a mini toolbar with accept, edit, and dismiss buttons. Accepting applies the change inline with a brief highlight animation.',
+          designTip: 'Make "dismiss" equally accessible as "accept" — asymmetric effort creates pressure to accept blindly.'
         }
       ],
       autonomous: [
         {
-          product: 'Tesla Autopilot',
-          description: 'AI handles routine driving tasks with constant human monitoring and intervention capability.',
-          relevance: 'Suitable for high-stakes environments where AI efficiency meets human safety oversight.'
+          pattern: 'Activity feed with undo rail',
+          reference: 'Gmail spam filter',
+          howItWorks: 'AI actions appear as timestamped entries in a scrollable feed. Each entry has an "Undo" button active for 30 seconds.',
+          designTip: 'Time-limit the undo window and show a countdown bar so users feel urgency without panic.'
         },
         {
-          product: 'Amazon Warehouse Robots',
-          description: 'AI-powered robots handle inventory movement while human workers manage complex tasks and oversight.',
-          relevance: 'Ideal for logistics operations requiring speed and precision with human supervision.'
+          pattern: 'Pre-action preview modal',
+          reference: 'GitHub Copilot Coding Agent',
+          howItWorks: 'Before executing a high-impact action, AI shows a diff-style preview of what will change. User confirms or cancels.',
+          designTip: 'Highlight deletions in red and additions in green — leverage existing mental models from version control.'
+        }
+      ],
+      creative: [
+        {
+          pattern: 'Prompt refinement sidebar',
+          reference: 'Midjourney',
+          howItWorks: 'As the user types a prompt, a sidebar suggests modifier keywords (style, mood, detail level) as clickable tags that append to the prompt.',
+          designTip: 'Show suggestions as additive tags rather than replacement text — users feel more in control of the creative direction.'
+        },
+        {
+          pattern: 'Regenerate with variation slider',
+          reference: 'Adobe Firefly',
+          howItWorks: 'After AI generates output, a slider lets the user control how different the next generation should be: "similar" on one end, "surprising" on the other.',
+          designTip: 'Default the slider to the conservative end so first-time users get predictable results and build confidence.'
+        }
+      ],
+      predictive: [
+        {
+          pattern: 'Forecast confidence band chart',
+          reference: 'Salesforce Einstein',
+          howItWorks: 'Predictions display as a line chart with shaded confidence bands. Hovering a point shows the probability range and key contributing factors.',
+          designTip: 'Use gradient opacity for confidence bands — darker = more certain, helping users intuitively judge reliability.'
+        },
+        {
+          pattern: 'Threshold alert configurator',
+          reference: 'GE Digital',
+          howItWorks: 'Users drag sliders to set alert thresholds on predicted values. A live preview shows how many alerts would have triggered historically.',
+          designTip: 'Show historical context alongside threshold controls so users calibrate based on real data, not guesswork.'
+        }
+      ],
+      conversational: [
+        {
+          pattern: 'Quick-reply button row',
+          reference: 'Bank of America Erica',
+          howItWorks: 'Below each AI message, 2-3 suggested replies appear as tappable buttons, letting users advance the conversation without typing.',
+          designTip: 'Keep quick-reply text under 4 words — longer options slow decision-making and defeat the purpose.'
+        },
+        {
+          pattern: 'Typing indicator with preview',
+          reference: 'MakeMyTrip Myra',
+          howItWorks: 'While AI processes, a typing indicator shows. For long responses, partial content streams in progressively so users can start reading immediately.',
+          designTip: 'Stream responses token-by-token rather than showing a spinner — perceived wait time drops dramatically.'
+        }
+      ],
+      assistive: [
+        {
+          pattern: 'Context menu AI actions',
+          reference: 'Notion AI',
+          howItWorks: 'User selects text and a context menu offers AI actions (summarize, rewrite, translate). Output replaces the selection inline with an undo option.',
+          designTip: 'Keep the AI action list to max 5 items and sort by frequency of use, not alphabetically.'
+        },
+        {
+          pattern: 'Inline smart formatting',
+          reference: 'Adobe Photoshop',
+          howItWorks: 'AI detects content type and offers one-click formatting (table, list, code block) via a floating toolbar that appears near the cursor.',
+          designTip: 'Position the toolbar above the selection so it doesn\'t obscure the content being formatted.'
         }
       ],
       monitoring: [
         {
-          product: 'Darktrace Network Security',
-          description: 'AI continuously monitors network traffic and alerts human security teams to potential threats.',
-          relevance: 'Critical for cybersecurity where AI detects anomalies but humans handle investigation and response.'
+          pattern: 'Severity-tiered notification stack',
+          reference: 'Microsoft Sentinel',
+          howItWorks: 'Alerts stack in a sidebar sorted by severity. Critical alerts pulse with a red dot; low-priority ones batch into a daily digest.',
+          designTip: 'Batch low-severity alerts to reduce notification fatigue — only interrupt for genuinely urgent items.'
         },
         {
-          product: 'Splunk IT Monitoring',
-          description: 'AI analyzes system logs and performance metrics, alerting human IT teams to potential issues.',
-          relevance: 'Essential for IT operations requiring 24/7 monitoring with human problem-solving.'
+          pattern: 'Ambient status dashboard',
+          reference: 'Apple Watch health rings',
+          howItWorks: 'A persistent, minimal status indicator (green/amber/red ring) shows system health at a glance. Tapping expands to a detailed breakdown.',
+          designTip: 'Use ambient, peripheral indicators for "all-clear" states — only demand focal attention when something is wrong.'
+        }
+      ],
+      personalization: [
+        {
+          pattern: 'Personalization transparency toggle',
+          reference: 'TikTok For You Page',
+          howItWorks: 'A small "Why this?" icon on each personalized item opens a popover listing the signals that influenced the recommendation.',
+          designTip: 'Pair algorithmic personalization with manual controls (not interested / more like this) so users feel agency, not surveillance.'
+        },
+        {
+          pattern: 'Preference onboarding carousel',
+          reference: 'Spotify',
+          howItWorks: 'On first use, a swipeable carousel asks users to pick preferences from visual cards. Selections immediately adjust the feed in real time.',
+          designTip: 'Limit onboarding to 5-7 choices — enough to seed the algorithm without fatiguing the user.'
+        }
+      ],
+      analytical: [
+        {
+          pattern: 'Natural language query bar',
+          reference: 'ThoughtSpot',
+          howItWorks: 'A search bar at the top of the dashboard accepts plain English questions. Autocomplete suggests column names and common queries as the user types.',
+          designTip: 'Show 2-3 example queries as cycling placeholder text — users learn the syntax from examples, not documentation.'
+        },
+        {
+          pattern: 'Auto-generated insight cards',
+          reference: 'Google Analytics 4',
+          howItWorks: 'AI surfaces notable changes as dismissible cards above the main dashboard. Each card shows the metric, the change, and a one-line explanation.',
+          designTip: 'Lead with the delta ("+15% this week") not the absolute number — anomalies are what demand attention.'
         }
       ]
     };
 
-    // Get examples for the specific intervention type
-    const baseExamples = typeExamples[interventionType] || typeExamples.advisory;
-
-    // Filter or prioritize examples based on industry
-    const industryExamples = baseExamples.filter(example => {
-      if (industry === 'healthcare' && example.product.includes('Health')) return true;
-      if (industry === 'finance' && example.product.includes('JPMorgan')) return true;
-      if (industry === 'education' && example.product.includes('Khan')) return true;
-      if (industry === 'technology' && (example.product.includes('GitHub') || example.product.includes('Figma'))) return true;
-      if (industry === 'retail' && example.product.includes('Amazon')) return true;
-      return true; // Include all if no specific match
-    });
-
-    // Return up to 3 most relevant examples
-    return industryExamples.slice(0, 3);
+    return (typeExamples[interventionType] || typeExamples.advisory).slice(0, 3);
   };
 
   // Fetch personalized examples when node is selected
@@ -186,7 +275,7 @@ export default function JourneyMap({ journeyMap, answers }) {
             // Fallback to hardcoded examples if no examples returned
             setPersonalisedExamples(prev => ({
               ...prev,
-              [nodeId]: getContextualExamples(selected.interventionType, answers)
+              [nodeId]: getContextualExamples(selected.interventionType)
             }));
           }
           setExamplesLoading(false);
@@ -197,7 +286,7 @@ export default function JourneyMap({ journeyMap, answers }) {
             // Fallback to hardcoded examples on error
             setPersonalisedExamples(prev => ({
               ...prev,
-              [nodeId]: getContextualExamples(selected.interventionType, answers)
+              [nodeId]: getContextualExamples(selected.interventionType)
             }));
           }
           setExamplesLoading(false);
@@ -210,7 +299,7 @@ export default function JourneyMap({ journeyMap, answers }) {
   return (
     <div>
       <h3 className="font-heading text-lg text-primary mb-1">{journeyMap.title || 'User Journey Map'}</h3>
-      <p className="text-sm text-accent font-semibold mb-6 p-3 bg-accent/10 rounded-lg border border-accent/20">✨ Click on any node to explore detailed recommendations and personalised AI-UX inspirations tailored to your use case</p>
+      <p className="text-sm text-accent font-semibold mb-6 p-3 bg-accent/10 rounded-lg border border-accent/20">✨ Click on any node to explore detailed recommendations and UX pattern inspirations tailored to your use case</p>
 
       <div ref={containerRef} className="relative bg-bg-card border border-border-light rounded-xl overflow-x-auto">
         {/* SVG layer for edges */}
@@ -311,27 +400,45 @@ export default function JourneyMap({ journeyMap, answers }) {
               <p className="text-sm text-text font-medium leading-relaxed">{selected.summary}</p>
             )}
 
-            {/* Personalised AI-UX Inspirations */}
-            <Section title="Personalised AI-UX Inspirations for You">
+            {/* UX Pattern Inspirations */}
+            <Section title="UX Pattern Inspirations">
               <div className="space-y-3">
                 {examplesLoading ? (
                   <div className="p-4 rounded-lg bg-primary/[0.02] border border-border-light flex items-center justify-center min-h-[100px]">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                      <p className="text-xs text-text-muted">Generating personalized examples...</p>
+                      <p className="text-xs text-text-muted">Generating UX pattern inspirations...</p>
                     </div>
                   </div>
                 ) : personalisedExamples[selected?.id] && personalisedExamples[selected?.id].length > 0 ? (
-                  personalisedExamples[selected?.id].map((example, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light hover:border-accent/30 transition-colors">
-                      <p className="text-sm font-medium text-primary">{example.product}</p>
-                      <p className="text-xs text-text-muted mt-0.5">{example.description}</p>
-                      <p className="text-xs text-accent mt-1 italic">{example.relevance}</p>
-                    </div>
-                  ))
+                  personalisedExamples[selected?.id].map((example, i) => {
+                    const patternName = example.pattern || example.product;
+                    const ref = example.reference || '';
+                    const body = example.howItWorks || example.description;
+                    const tip = example.designTip || example.relevance;
+                    return (
+                      <div key={i} className="p-3 rounded-lg bg-primary/[0.02] border border-border-light hover:border-accent/30 transition-colors">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-medium text-primary">{patternName}</p>
+                          {ref && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent whitespace-nowrap">
+                              {ref}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-text-muted leading-relaxed">{body}</p>
+                        {tip && (
+                          <p className="text-xs text-accent mt-1.5 flex items-start gap-1">
+                            <span className="font-medium shrink-0">Tip:</span>
+                            <span>{tip}</span>
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="p-3 rounded-lg bg-primary/[0.02] border border-border-light">
-                    <p className="text-xs text-text-muted">No examples available</p>
+                    <p className="text-xs text-text-muted">No inspirations available</p>
                   </div>
                 )}
               </div>
