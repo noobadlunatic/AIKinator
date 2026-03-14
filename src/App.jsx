@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AssessmentProvider, useAssessment } from './hooks/useAssessment';
 import { useAIRecommendation } from './hooks/useAIRecommendation';
 import { getSharedDataFromUrl } from './services/sharing';
+import { trackScreenExit, trackAnalysisStarted, trackAnalysisCompleted, trackAnalysisFailed } from './services/analytics';
 import ErrorBoundary from './components/ErrorBoundary';
 import Landing from './components/Landing';
 import Questionnaire from './components/Questionnaire';
@@ -25,6 +26,9 @@ function AppRouter() {
   const { state, setAnswer, setResults, setError, startAnalysis } = useAssessment();
   const { status, progress, error, result, analyze, retry } = useAIRecommendation();
   const sharedHandled = useRef(false);
+  const screenEnteredAt = useRef(Date.now());
+  const analysisStartedAt = useRef(null);
+  const prevScreenRef = useRef(state.currentScreen);
 
   // Handle shared URL on mount
   useEffect(() => {
@@ -41,9 +45,21 @@ function AppRouter() {
     }
   }, [setAnswer, startAnalysis, analyze]);
 
+  // Track screen transitions and time spent on each screen
+  useEffect(() => {
+    if (prevScreenRef.current && prevScreenRef.current !== state.currentScreen) {
+      const elapsed = Date.now() - screenEnteredAt.current;
+      trackScreenExit(prevScreenRef.current, elapsed);
+    }
+    prevScreenRef.current = state.currentScreen;
+    screenEnteredAt.current = Date.now();
+  }, [state.currentScreen]);
+
   // When the screen transitions to 'loading', kick off the AI call
   useEffect(() => {
     if (state.currentScreen === 'loading' && status === 'idle') {
+      analysisStartedAt.current = Date.now();
+      trackAnalysisStarted();
       analyze(state.answers);
     }
   }, [state.currentScreen, status, analyze, state.answers]);
@@ -51,6 +67,11 @@ function AppRouter() {
   // When AI call succeeds, update state
   useEffect(() => {
     if (status === 'success' && result) {
+      if (analysisStartedAt.current) {
+        const elapsed = Date.now() - analysisStartedAt.current;
+        trackAnalysisCompleted(elapsed);
+        analysisStartedAt.current = null;
+      }
       setResults(result);
     }
   }, [status, result, setResults]);
@@ -58,6 +79,8 @@ function AppRouter() {
   // When AI call fails, update state
   useEffect(() => {
     if (status === 'error' && error) {
+      trackAnalysisFailed(error);
+      analysisStartedAt.current = null;
       setError(error);
     }
   }, [status, error, setError]);

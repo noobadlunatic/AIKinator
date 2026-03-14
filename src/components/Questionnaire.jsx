@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAssessment } from '../hooks/useAssessment';
 import { SECTIONS, ALL_QUESTIONS } from '../data/questions';
+import { trackAssessmentSubmitted } from '../services/analytics';
 import QuestionStep from './QuestionStep';
 
 export default function Questionnaire() {
@@ -8,12 +9,18 @@ export default function Questionnaire() {
   const { answers } = state;
   const [validationErrors, setValidationErrors] = useState({});
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const mountedAt = useRef(Date.now());
+  const questionFirstInteractionAt = useRef({});
 
   const answeredCount = ALL_QUESTIONS.filter(
     (q) => validateAnswer(q, answers[q.answerKey])
   ).length;
 
   function handleChange(answerKey, value) {
+    // Record first interaction time for this question if not yet recorded
+    if (!questionFirstInteractionAt.current[answerKey]) {
+      questionFirstInteractionAt.current[answerKey] = Date.now();
+    }
     setAnswer(answerKey, value);
     if (validationErrors[answerKey]) {
       setValidationErrors((prev) => {
@@ -47,6 +54,17 @@ export default function Questionnaire() {
     }
 
     setValidationErrors({});
+
+    // Track assessment submission with timing data
+    const now = Date.now();
+    const totalTime = now - mountedAt.current;
+    const perQuestion = {};
+    for (const q of ALL_QUESTIONS) {
+      const firstInteraction = questionFirstInteractionAt.current[q.answerKey];
+      perQuestion[q.answerKey] = firstInteraction ? now - firstInteraction : null;
+    }
+    trackAssessmentSubmitted(answers, { totalTime, perQuestion });
+
     startAnalysis();
   }
 
