@@ -1,10 +1,8 @@
 import { useState } from 'react';
 
-export default function QuestionStep({ question, value, onChange, direction }) {
-  const animClass = direction === 'back' ? 'animate-slide-in-left' : 'animate-slide-in-right';
-
+export default function QuestionStep({ question, value, onChange }) {
   return (
-    <div key={question.id} className={animClass}>
+    <div>
       <h2 className="font-heading text-2xl md:text-3xl text-primary mb-2">
         {question.text}
       </h2>

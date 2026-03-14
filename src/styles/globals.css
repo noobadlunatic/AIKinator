@@ -92,6 +92,23 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* Chai widget steam animations */
+@keyframes steam-rise-1 {
+  0%   { transform: translateY(0) scaleY(1); opacity: 0.6; }
+  50%  { transform: translateY(-3px) scaleY(1.15); opacity: 0.9; }
+  100% { transform: translateY(0) scaleY(1); opacity: 0.6; }
+}
+@keyframes steam-rise-2 {
+  0%   { transform: translateY(0) scaleY(1); opacity: 0.5; }
+  50%  { transform: translateY(-4px) scaleY(1.2); opacity: 0.85; }
+  100% { transform: translateY(0) scaleY(1); opacity: 0.5; }
+}
+@keyframes steam-rise-3 {
+  0%   { transform: translateY(0) scaleY(1); opacity: 0.55; }
+  50%  { transform: translateY(-2px) scaleY(1.1); opacity: 0.8; }
+  100% { transform: translateY(0) scaleY(1); opacity: 0.55; }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
 }
@@ -120,6 +137,19 @@ body {
   animation: spin-slow 3s linear infinite;
 }
 
+.group-hover\:animate-steam-1 { transform-origin: bottom; }
+.group-hover\:animate-steam-2 { transform-origin: bottom; }
+.group-hover\:animate-steam-3 { transform-origin: bottom; }
+.group:hover .group-hover\:animate-steam-1 {
+  animation: steam-rise-1 1.4s ease-in-out infinite;
+}
+.group:hover .group-hover\:animate-steam-2 {
+  animation: steam-rise-2 1.6s ease-in-out infinite 0.2s;
+}
+.group:hover .group-hover\:animate-steam-3 {
+  animation: steam-rise-3 1.3s ease-in-out infinite 0.4s;
+}
+
 /* Staggered children animation */
 .stagger-children > * {
   opacity: 0;
@@ -145,7 +175,10 @@ body {
   .animate-scale-in,
   .animate-pulse-soft,
   .animate-spin-slow,
-  .stagger-children > * {
+  .stagger-children > *,
+  .group:hover .group-hover\:animate-steam-1,
+  .group:hover .group-hover\:animate-steam-2,
+  .group:hover .group-hover\:animate-steam-3 {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

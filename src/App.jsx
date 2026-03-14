@@ -7,6 +7,7 @@ import Landing from './components/Landing';
 import Questionnaire from './components/Questionnaire';
 import AnalysisLoading from './components/AnalysisLoading';
 import Results from './components/Results';
+import ChaiWidget from './components/ChaiWidget';
 
 export default function App() {
   return (
@@ -64,22 +65,36 @@ function AppRouter() {
     retry(state.answers);
   }
 
+  const showChaiWidget = state.currentScreen === 'landing' || state.currentScreen === 'results';
+
+  let screen;
   switch (state.currentScreen) {
     case 'landing':
-      return <Landing />;
+      screen = <Landing />;
+      break;
     case 'questionnaire':
-      return <Questionnaire />;
+      screen = <Questionnaire />;
+      break;
     case 'loading':
-      return (
+      screen = (
         <AnalysisLoading
           progress={progress}
           error={state.error || error}
           onRetry={handleRetry}
         />
       );
+      break;
     case 'results':
-      return <Results />;
+      screen = <Results />;
+      break;
     default:
-      return <Landing />;
+      screen = <Landing />;
   }
+
+  return (
+    <>
+      {screen}
+      {showChaiWidget && <ChaiWidget />}
+    </>
+  );
 }
