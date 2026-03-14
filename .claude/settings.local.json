@@ -4,7 +4,8 @@
       "Bash(npx vite build --mode development)",
       "Bash(npm run dev)",
       "Bash(npm run build)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm install:*)"
     ]
   }
 }

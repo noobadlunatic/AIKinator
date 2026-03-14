@@ -8,6 +8,7 @@ import Questionnaire from './components/Questionnaire';
 import AnalysisLoading from './components/AnalysisLoading';
 import Results from './components/Results';
 import ChaiWidget from './components/ChaiWidget';
+import { Analytics } from '@vercel/analytics/react';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <AssessmentProvider>
         <AppRouter />
       </AssessmentProvider>
+      <Analytics />
     </ErrorBoundary>
   );
 }

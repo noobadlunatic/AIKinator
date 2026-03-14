@@ -34,15 +34,10 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
     if (layers[n.id] === undefined) layers[n.id] = 0;
   });
 
-  // Fallback: if all nodes ended up in the same layer (e.g., no valid edges),
-  // force sequential layers based on array order to guarantee horizontal flow.
-  const uniqueLayers = new Set(Object.values(layers));
-  const usedFallback = uniqueLayers.size <= 1 && nodes.length > 1;
-  if (usedFallback) {
-    nodes.forEach((n, i) => {
-      layers[n.id] = i;
-    });
-  }
+  // Flatten to sequential layers — one node per layer for strictly horizontal flow.
+  // Preserves topological order but ensures no two nodes share a layer.
+  const sortedNodes = [...nodes].sort((a, b) => (layers[a.id] || 0) - (layers[b.id] || 0));
+  sortedNodes.forEach((n, i) => { layers[n.id] = i; });
 
   // Group nodes by layer
   const layerGroups = {};
@@ -85,15 +80,13 @@ export function computeLayout(nodes, edges, containerWidth, containerHeight, hor
   const posNodeMap = {};
   positioned.forEach(n => { posNodeMap[n.id] = n; });
 
-  // If fallback was used and no valid edges exist, synthesize a sequential chain
+  // If no valid edges exist, synthesize a sequential chain
   let finalEdges = edges;
-  if (usedFallback) {
-    const hasValidEdges = edges.some(e => posNodeMap[e.from] && posNodeMap[e.to]);
-    if (!hasValidEdges) {
-      finalEdges = [];
-      for (let i = 0; i < positioned.length - 1; i++) {
-        finalEdges.push({ from: positioned[i].id, to: positioned[i + 1].id });
-      }
+  const hasValidEdges = edges.some(e => posNodeMap[e.from] && posNodeMap[e.to]);
+  if (!hasValidEdges) {
+    finalEdges = [];
+    for (let i = 0; i < positioned.length - 1; i++) {
+      finalEdges.push({ from: positioned[i].id, to: positioned[i + 1].id });
     }
   }
 
