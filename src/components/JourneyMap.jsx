@@ -299,7 +299,6 @@ export default function JourneyMap({ journeyMap, answers }) {
   return (
     <div>
       <h3 className="font-heading text-lg text-primary mb-1">{journeyMap.title || 'User Journey Map'}</h3>
-      <p className="text-sm text-accent font-semibold mb-6 p-3 bg-accent/10 rounded-lg border border-accent/20">✨ Click on any node to explore detailed recommendations and UX pattern inspirations tailored to your use case</p>
 
       <div ref={containerRef} className="relative bg-bg-card border border-border-light rounded-xl overflow-x-auto">
         {/* SVG layer for edges */}
@@ -372,6 +371,11 @@ export default function JourneyMap({ journeyMap, answers }) {
             );
           })}
         </div>
+
+        {/* Hint text inside the card */}
+        <p className="text-xs font-semibold text-accent text-center py-2.5 px-4 border-t border-border-light">
+          <span className="mr-1">✦</span>Click any step to explore recommendations &amp; UX patterns<span className="ml-1">✦</span>
+        </p>
       </div>
 
       {/* Selected node rich detail panel */}
