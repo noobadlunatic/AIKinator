@@ -374,7 +374,7 @@ export default function JourneyMap({ journeyMap, answers }) {
 
         {/* Hint text inside the card */}
         <p className="text-xs font-semibold text-accent text-center py-2.5 px-4 border-t border-border-light">
-          <span className="mr-1">✦</span>Click any step to explore recommendations &amp; UX patterns<span className="ml-1">✦</span>
+          <span className="mr-1">✦</span>Click any of the above nodes to explore AI recommendations &amp; AI-UX patterns<span className="ml-1">✦</span>
         </p>
       </div>
 
@@ -405,7 +405,7 @@ export default function JourneyMap({ journeyMap, answers }) {
             )}
 
             {/* UX Pattern Inspirations */}
-            <Section title="UX Pattern Inspirations">
+            <Section title="AI-UX Pattern Inspirations">
               <div className="space-y-3">
                 {examplesLoading ? (
                   <div className="p-4 rounded-lg bg-primary/[0.02] border border-border-light flex items-center justify-center min-h-[100px]">
