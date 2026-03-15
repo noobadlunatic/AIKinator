@@ -5,7 +5,14 @@
       "Bash(npm run dev)",
       "Bash(npm run build)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(find '/Users/mohitbelokar/Desktop/AIkinator v2' -type f \\\\\\(-name *.js -o -name *.jsx -o -name *.ts -o -name *.tsx -o -name vercel.json \\\\\\) ! -path */node_modules/*)",
+      "Bash(find '/Users/mohitbelokar/Desktop/AIkinator v2' -maxdepth 3 -type d ! -path */node_modules/* ! -path */.git/*)",
+      "Bash(grep -ri \"blob\\\\|vercel\" '/Users/mohitbelokar/Desktop/AIkinator v2' --include=*.md --include=*.json --include=*.js --include=*.jsx --exclude-dir=node_modules --exclude-dir=.git)",
+      "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__list_teams",
+      "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__list_projects",
+      "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__get_project",
+      "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__search_vercel_documentation"
     ]
   }
 }

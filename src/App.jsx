@@ -3,6 +3,7 @@ import { AssessmentProvider, useAssessment } from './hooks/useAssessment';
 import { useAIRecommendation } from './hooks/useAIRecommendation';
 import { getSharedDataFromUrl } from './services/sharing';
 import { trackScreenExit, trackAnalysisStarted, trackAnalysisCompleted, trackAnalysisFailed } from './services/analytics';
+import { saveSessionToBlob } from './services/blobStorage';
 import ErrorBoundary from './components/ErrorBoundary';
 import Landing from './components/Landing';
 import Questionnaire from './components/Questionnaire';
@@ -64,7 +65,7 @@ function AppRouter() {
     }
   }, [state.currentScreen, status, analyze, state.answers]);
 
-  // When AI call succeeds, update state
+  // When AI call succeeds, update state and save session to blob
   useEffect(() => {
     if (status === 'success' && result) {
       if (analysisStartedAt.current) {
@@ -73,8 +74,11 @@ function AppRouter() {
         analysisStartedAt.current = null;
       }
       setResults(result);
+
+      // Fire-and-forget: save full session to Vercel Blob for analytics
+      saveSessionToBlob(state.answers, result.journeyMap, result.whyNot);
     }
-  }, [status, result, setResults]);
+  }, [status, result, setResults, state.answers]);
 
   // When AI call fails, update state
   useEffect(() => {
