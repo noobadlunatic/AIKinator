@@ -36,6 +36,7 @@ function AppRouter() {
   const screenEnteredAt = useRef(Date.now());
   const analysisStartedAt = useRef(null);
   const prevScreenRef = useRef(state.currentScreen);
+  const analysisTriggeredRef = useRef(false);
 
   // Handle shared URL on mount
   useEffect(() => {
@@ -63,13 +64,22 @@ function AppRouter() {
   }, [state.currentScreen]);
 
   // When the screen transitions to 'loading', kick off the AI call
+  // Ref guard prevents StrictMode double-mount from triggering analyze() twice
   useEffect(() => {
-    if (state.currentScreen === 'loading' && status === 'idle') {
+    if (state.currentScreen === 'loading' && status === 'idle' && !analysisTriggeredRef.current) {
+      analysisTriggeredRef.current = true;
       analysisStartedAt.current = Date.now();
       trackAnalysisStarted();
       analyze(state.answers);
     }
   }, [state.currentScreen, status, analyze, state.answers]);
+
+  // Reset the guard when leaving the loading screen (e.g., new assessment)
+  useEffect(() => {
+    if (state.currentScreen !== 'loading') {
+      analysisTriggeredRef.current = false;
+    }
+  }, [state.currentScreen]);
 
   // When AI call succeeds, update state and save session to blob
   useEffect(() => {
@@ -96,6 +106,7 @@ function AppRouter() {
   }, [status, error, setError]);
 
   function handleRetry() {
+    analysisTriggeredRef.current = false;
     setError(null);
     retry(state.answers);
   }

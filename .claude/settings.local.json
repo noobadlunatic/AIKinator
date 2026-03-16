@@ -14,7 +14,8 @@
       "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__get_project",
       "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__search_vercel_documentation",
       "Bash(lsof -ti:5173,5174)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(curl -s https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=REDACTED_KEY -H 'Content-Type: application/json' -d '{\"\"\"\"contents\"\"\"\":[{\"\"\"\"role\"\"\"\":\"\"\"\"user\"\"\"\",\"\"\"\"parts\"\"\"\":[{\"\"\"\"text\"\"\"\":\"\"\"\"Say hi\"\"\"\"}]}],\"\"\"\"generationConfig\"\"\"\":{\"\"\"\"maxOutputTokens\"\"\"\":10}}')"
     ]
   }
 }

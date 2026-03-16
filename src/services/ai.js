@@ -284,7 +284,7 @@ export async function getRecommendation(answers, { signal } = {}) {
     await waitForRateLimit(signal);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort('TIMEOUT'), 60000);
 
     // Forward external abort to this attempt's controller
     if (signal) {
@@ -343,7 +343,12 @@ export async function getRecommendation(answers, { signal } = {}) {
     } catch (err) {
       clearTimeout(timeout);
       if (err.name === 'AbortError') {
-        throw err;
+        // If the external caller aborted (e.g., user navigated away), propagate silently
+        if (signal?.aborted) {
+          throw err;
+        }
+        // Internal timeout — throw a user-friendly error instead of cryptic abort message
+        throw new Error('Request timed out. The AI service is taking longer than expected — please try again.');
       }
       // For non-429 errors, don't retry
       throw err;

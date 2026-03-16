@@ -42,7 +42,8 @@ export function useAIRecommendation() {
       return data;
     } catch (err) {
       clearInterval(intervalRef.current);
-      if (abortController.signal.aborted) return null;
+      // Silently ignore if this request was intentionally aborted (e.g., new analysis started)
+      if (abortController.signal.aborted || err.name === 'AbortError') return null;
       setProgress(0);
       setError(err.message || 'An unexpected error occurred.');
       setStatus('error');
