@@ -1,5 +1,9 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { computeLayout, getEdgePath } from '../utils/journeyLayout';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { ReactFlow, MarkerType } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { getLayoutedElements } from '../utils/dagreLayout';
+import JourneyMapNode from './JourneyMapNode';
+import JourneyMapEdge from './JourneyMapEdge';
 import { getTypeColor, getTypeName } from '../data/taxonomy';
 import { getPersonalisedExamples } from '../services/ai';
 import ConfidenceScore from './ConfidenceScore';
@@ -14,45 +18,64 @@ function Section({ title, children }) {
   );
 }
 
+const nodeTypes = { journeyNode: JourneyMapNode };
+const edgeTypes = { custom: JourneyMapEdge };
+
 export default function JourneyMap({ journeyMap, answers }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [personalisedExamples, setPersonalisedExamples] = useState({});
   const [examplesLoading, setExamplesLoading] = useState(false);
-  const containerRef = useRef(null);
-  const [containerWidth, setContainerWidth] = useState(800);
+  const detailPanelRef = useRef(null);
 
-  const numNodes = journeyMap?.nodes?.length || 4;
-  const NODE_SPACING = 220;
-  const CONTAINER_HEIGHT = 200;
-  const layoutWidth = Math.max(containerWidth, numNodes * NODE_SPACING);
+  // Convert journeyMap data to React Flow format and run dagre layout
+  const { rfNodes, rfEdges, layoutHeight, layoutWidth } = useMemo(() => {
+    if (!journeyMap?.nodes?.length) return { rfNodes: [], rfEdges: [], layoutHeight: 280, layoutWidth: 800 };
 
-  useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.clientWidth);
+    const nodes = journeyMap.nodes.map(node => ({
+      id: node.id,
+      type: 'journeyNode',
+      position: { x: 0, y: 0 },
+      data: {
+        ...node,
+        color: getTypeColor(node.interventionType),
+        typeName: getTypeName(node.interventionType),
+        isActive: selectedNode === node.id,
+      },
+    }));
+
+    const nodeIds = new Set(journeyMap.nodes.map(n => n.id));
+    const edges = (journeyMap.edges || [])
+      .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
+      .map((edge, i) => ({
+        id: `e-${edge.from}-${edge.to}-${i}`,
+        source: edge.from,
+        target: edge.to,
+        label: edge.label || '',
+        type: 'custom',
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#b0b0b0', width: 16, height: 16 },
+        style: { stroke: '#b0b0b0', strokeWidth: 1.5 },
+      }));
+
+    const { nodes: layoutedNodes, edges: layoutedEdges, height, width } = getLayoutedElements(nodes, edges);
+    return { rfNodes: layoutedNodes, rfEdges: layoutedEdges, layoutHeight: height, layoutWidth: width };
+  }, [journeyMap, selectedNode]);
+
+  const onNodeClick = useCallback((event, node) => {
+    setSelectedNode(prev => {
+      const newValue = prev === node.id ? null : node.id;
+      if (newValue) {
+        // Smooth scroll to detail panel after React renders it
+        setTimeout(() => {
+          detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
       }
-    };
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
+      return newValue;
+    });
   }, []);
-
-  const layout = useMemo(() => {
-    if (!journeyMap?.nodes?.length) return null;
-    return computeLayout(
-      journeyMap.nodes,
-      journeyMap.edges || [],
-      layoutWidth,
-      CONTAINER_HEIGHT,
-      true,
-    );
-  }, [journeyMap, layoutWidth]);
 
   if (!journeyMap?.nodes?.length) return null;
 
-  const selected = selectedNode ? layout?.nodes.find(n => n.id === selectedNode) : null;
-  const nodeMap = {};
-  layout?.nodes.forEach(n => { nodeMap[n.id] = n; });
+  const selected = selectedNode ? journeyMap.nodes.find(n => n.id === selectedNode) : null;
 
   // Get autonomy level info — handles both string ("L2") and object formats
   const getAutonomyLevel = (node) => {
@@ -254,16 +277,16 @@ export default function JourneyMap({ journeyMap, answers }) {
   useEffect(() => {
     if (selected) {
       const nodeId = selected.id;
-      
+
       // Check if we already have examples for this node
       if (personalisedExamples[nodeId]) {
         setExamplesLoading(false);
         return;
       }
-      
+
       setExamplesLoading(true);
       const abortController = new AbortController();
-      
+
       getPersonalisedExamples(selected.interventionType, selected.description || selected.summary, answers, { signal: abortController.signal })
         .then(examples => {
           if (examples && examples.length > 0) {
@@ -291,7 +314,7 @@ export default function JourneyMap({ journeyMap, answers }) {
           }
           setExamplesLoading(false);
         });
-      
+
       return () => abortController.abort();
     }
   }, [selected, answers]);
@@ -300,87 +323,41 @@ export default function JourneyMap({ journeyMap, answers }) {
     <div>
       <h3 className="font-heading text-lg text-primary mb-1">{journeyMap.title || 'User Journey Map'}</h3>
 
-      <div ref={containerRef} className="relative bg-bg-card border border-border-light rounded-xl overflow-x-auto">
-        {/* SVG layer for edges */}
-        <svg
-          width={layout?.width || layoutWidth}
-          height={layout?.height || CONTAINER_HEIGHT}
-          className="absolute top-0 left-0"
-        >
-          <defs>
-            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-              <polygon points="0 0, 8 3, 0 6" fill="var(--color-border)" />
-            </marker>
-          </defs>
-          {layout?.edges.map((edge, i) => {
-            const from = nodeMap[edge.from];
-            const to = nodeMap[edge.to];
-            if (!from || !to) return null;
-            return (
-              <g key={i}>
-                <path
-                  d={getEdgePath(from, to, true)}
-                  fill="none"
-                  stroke="var(--color-border)"
-                  strokeWidth={2}
-                  markerEnd="url(#arrowhead)"
-                />
-                {edge.label && (
-                  <text
-                    x={(from.x + to.x) / 2}
-                    y={Math.min(from.y, to.y) - 20}
-                    textAnchor="middle"
-                    className="text-[9px] fill-text-light"
-                  >
-                    {edge.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* HTML overlay for nodes */}
-        <div
-          className="relative"
-          style={{ width: layout?.width || layoutWidth, height: layout?.height || CONTAINER_HEIGHT }}
-        >
-          {layout?.nodes.map((node) => {
-            const color = getTypeColor(node.interventionType);
-            const isActive = selectedNode === node.id;
-            return (
-              <button
-                key={node.id}
-                onClick={() => setSelectedNode(isActive ? null : node.id)}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 ${
-                  isActive ? 'z-20 scale-105' : 'z-10 hover:scale-105'
-                }`}
-                style={{ left: node.x, top: node.y }}
-              >
-                <div
-                  className={`w-24 p-2.5 rounded-xl border-2 bg-bg-card text-center transition-all ${
-                    isActive ? 'shadow-lg' : 'shadow-sm hover:shadow-md'
-                  }`}
-                  style={{ borderColor: isActive ? color : 'var(--color-border-light)' }}
-                >
-                  <div className="w-3 h-3 rounded-full mx-auto mb-1.5" style={{ backgroundColor: color }} />
-                  <p className="text-[10px] font-medium text-primary leading-tight">{node.label}</p>
-                  <p className="text-[8px] text-text-muted mt-0.5">{getTypeName(node.interventionType)}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Hint text inside the card */}
-        <p className="text-xs font-semibold text-accent text-center py-2.5 px-4 border-t border-border-light">
-          <span className="mr-1">✦</span>Click any of the above nodes to explore AI recommendations &amp; AI-UX patterns<span className="ml-1">✦</span>
+      <div className="bg-bg-card border border-border-light rounded-xl overflow-hidden">
+        {/* Hint text — fixed above scroll area */}
+        <p className="text-xs font-semibold text-center py-2.5 px-4 border-b border-border-light animate-hint-shimmer">
+          ✦ Click any of the below steps to explore AI recommendations &amp; AI-UX patterns ✦
         </p>
+
+        {/* Scrollable journey map area */}
+        <div className="overflow-auto">
+          <div style={{ width: layoutWidth || 800, height: Math.max(280, layoutHeight || 280) }}>
+            <ReactFlow
+              nodes={rfNodes}
+              edges={rfEdges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodeClick={onNodeClick}
+              defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+              minZoom={1}
+              maxZoom={1}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              panOnDrag={false}
+              zoomOnScroll={false}
+              zoomOnPinch={false}
+              preventScrolling={false}
+              proOptions={{ hideAttribution: true }}
+              style={{ background: 'transparent' }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Selected node rich detail panel */}
       {selected && (
-        <div className="mt-4 p-5 rounded-xl border-2 bg-bg-card animate-scale-in" style={{ borderColor: getTypeColor(selected.interventionType) }}>
+        <div ref={detailPanelRef} className="mt-4 p-5 rounded-xl border-2 bg-bg-card animate-scale-in" style={{ borderColor: getTypeColor(selected.interventionType) }}>
           {/* Header with confidence score */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-2 flex-1">
@@ -468,7 +445,6 @@ export default function JourneyMap({ journeyMap, answers }) {
                     </h4>
                     <div className="space-y-2">
                       {selected.pros.map((pro, i) => {
-                        // Handle both string and object formats
                         const point = typeof pro === 'string' ? pro : pro.point;
                         const detail = typeof pro === 'object' ? pro.detail : null;
                         return (

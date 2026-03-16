@@ -4,6 +4,7 @@ import { useAIRecommendation } from './hooks/useAIRecommendation';
 import { getSharedDataFromUrl } from './services/sharing';
 import { trackScreenExit, trackAnalysisStarted, trackAnalysisCompleted, trackAnalysisFailed } from './services/analytics';
 import { saveSessionToBlob } from './services/blobStorage';
+import AdminDashboard from './components/AdminDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import Landing from './components/Landing';
 import Questionnaire from './components/Questionnaire';
@@ -24,6 +25,11 @@ export default function App() {
 }
 
 function AppRouter() {
+  // Admin dashboard — not linked from the UI, accessible at /admin
+  if (window.location.pathname === '/admin') {
+    return <AdminDashboard />;
+  }
+
   const { state, setAnswer, setResults, setError, startAnalysis } = useAssessment();
   const { status, progress, error, result, analyze, retry } = useAIRecommendation();
   const sharedHandled = useRef(false);
