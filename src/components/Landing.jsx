@@ -23,7 +23,7 @@ export default function Landing() {
             AIkinator
           </h1>
           <p className="text-lg md:text-xl text-accent font-medium mb-3">
-            Find the right AI intervention for your product
+            Find the right AI-UX intervention for your product
           </p>
           <p className="text-base text-text-muted max-w-xl mx-auto mb-10 leading-relaxed">
             Answer a few questions about your business context and get ranked, personalized recommendations
