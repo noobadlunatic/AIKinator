@@ -12,7 +12,9 @@
       "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__list_teams",
       "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__list_projects",
       "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__get_project",
-      "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__search_vercel_documentation"
+      "mcp__0c72176e-1422-4cac-8938-a76ca5bb977a__search_vercel_documentation",
+      "Bash(lsof -ti:5173,5174)",
+      "Bash(xargs kill:*)"
     ]
   }
 }

@@ -76,7 +76,7 @@ KEY PRINCIPLES:
 - Each node should have comprehensive data: confidence score, detailed description, context fit, real-world examples, autonomy level with human/AI roles, detailed pros/cons with mitigations, trust considerations, and implementation details
 - Risk level is the PRIMARY filter: high-stakes domains MUST include human-in-the-loop patterns
 - Consider data availability as a hard constraint
-- Include specific real-world examples, preferring the user's industry
+- Include specific real-world examples, preferring the user's industry. IMPORTANT: Vary your examples widely — do NOT repeat the same products across nodes. Draw from diverse companies, startups, and lesser-known products, not just Google/Apple/Amazon. Each node's examples must reference different products.
 - Flag relevant anti-patterns to avoid
 - Be opinionated — don't hedge everything. Give clear, actionable recommendations.
 
@@ -163,7 +163,7 @@ BUSINESS CONTEXT:
 
 Remember:
 - Design a user journey map with 4-7 nodes showing how AI interventions map to stages of the user's workflow
-- Each node should have a confidence score (0-100%), detailed context fit, 1-2 real-world examples, full autonomy level with human/AI roles, and detailed pros/cons with mitigations
+- Each node should have a confidence score (0-100%), detailed context fit, 2-3 real-world examples from DIFFERENT companies (avoid repeating Google, Apple, Amazon across nodes — use diverse, industry-specific products), full autonomy level with human/AI roles, and detailed pros/cons with mitigations
 - Include trust considerations and implementation details per node
 - Be specific about WHY each intervention fits at each stage for their stated problem and context
 - Flag any anti-patterns they should avoid in the whyNot section
@@ -373,6 +373,7 @@ Rules:
 - "howItWorks" must describe what the USER sees and does — max 2 sentences.
 - "designTip" must be one actionable design heuristic the reader can apply today.
 - Keep everything concise. No marketing language. No metrics.
+- IMPORTANT: Vary your references widely. Avoid defaulting to Google, Apple, or Amazon products. Include lesser-known tools, startups, and industry-specific products. Each inspiration must reference a DIFFERENT product.
 
 Return a JSON array (3-4 items):
 [
