@@ -9,6 +9,9 @@ dist/
 .env.local
 .env.*.local
 
+# Claude local config (may contain API keys in permissions)
+.claude/
+
 # IDE
 .vscode/
 .idea/
