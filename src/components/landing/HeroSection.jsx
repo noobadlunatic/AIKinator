@@ -51,8 +51,10 @@ function JourneyPreview() {
 export default function HeroSection({ onStart, onShowTaxonomy }) {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-bg">
-      {/* Interactive stereogram pattern canvas */}
-      <StereogramCanvas />
+      {/* Interactive aurora canvas (desktop only — no cursor on mobile) */}
+      <div className="hidden md:block absolute inset-0">
+        <StereogramCanvas />
+      </div>
 
       {/* Grain overlay */}
       <div className="absolute inset-0 grain-overlay pointer-events-none" aria-hidden="true" />
@@ -70,7 +72,7 @@ export default function HeroSection({ onStart, onShowTaxonomy }) {
         </div>
 
         {/* Tagline — word-by-word fade with blur */}
-        <p className="text-lg md:text-xl font-medium mb-5 leading-relaxed">
+        <p className="text-base sm:text-lg md:text-xl font-medium mb-4 sm:mb-5 leading-relaxed">
           {TAGLINE_WORDS.map((word, i) => (
             <span
               key={i}
@@ -84,7 +86,7 @@ export default function HeroSection({ onStart, onShowTaxonomy }) {
 
         {/* Description */}
         <p
-          className="text-sm sm:text-base text-text-muted max-w-md mx-auto mb-10 leading-relaxed animate-fade-in"
+          className="text-sm sm:text-base text-text-muted max-w-md mx-auto mb-8 sm:mb-10 leading-relaxed animate-fade-in"
           style={{ animationDelay: '1.4s', opacity: 0 }}
         >
           Answer 6 quick questions about your product. Get a personalized roadmap
@@ -121,7 +123,7 @@ export default function HeroSection({ onStart, onShowTaxonomy }) {
         </div>
 
         {/* Mobile: compact preview */}
-        <div className="md:hidden mt-10 animate-fade-in" style={{ animationDelay: '2s', opacity: 0 }}>
+        <div className="md:hidden mt-6 animate-fade-in" style={{ animationDelay: '2s', opacity: 0 }}>
           <div className="flex items-center justify-center gap-2">
             {[TAXONOMY[0], TAXONOMY[3], TAXONOMY[6]].map((t) => (
               <div
