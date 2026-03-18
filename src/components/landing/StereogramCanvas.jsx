@@ -44,6 +44,88 @@ function pickIndices(n, max) {
   return indices;
 }
 
+/* ── dynamic neural network: compute target positions from entry/exit Ys ── */
+const CIRCLE_NET_COLUMNS = 5; // entry, inner1, center, inner2, exit
+const CIRCLE_NET_LERP = 0.04;
+
+function computeCircleNetTargets(cx, cy, r, entryYs, exitYs) {
+  const innerR = r * 0.95;
+  const colXs = [-1.0, -0.5, 0, 0.5, 1.0].map(f => cx + f * innerR);
+  const targets = []; // { x, y, col }
+
+  // Column 0: entry nodes (one per incoming stream)
+  for (const ey of entryYs) {
+    targets.push({ x: colXs[0], y: ey, col: 0 });
+  }
+
+  // Column 1: converging toward center — lerp 60% from entry spread toward cy
+  const entryAvg = entryYs.reduce((a, b) => a + b, 0) / (entryYs.length || 1);
+  const entrySpread = Math.max(40, ...entryYs.map(y => Math.abs(y - entryAvg))) * 1.1;
+  for (let i = 0; i < 3; i++) {
+    const frac = (i + 0.5) / 3;
+    const rawY = entryAvg - entrySpread + frac * entrySpread * 2;
+    const y = rawY * 0.4 + cy * 0.6; // pull 60% toward center
+    targets.push({ x: colXs[1], y, col: 1 });
+  }
+
+  // Column 2: tightest convergence — very close to cy
+  const centerSpread = innerR * 0.08;
+  for (let i = 0; i < 2; i++) {
+    const frac = (i + 0.5) / 2;
+    targets.push({ x: colXs[2], y: cy - centerSpread + frac * centerSpread * 2, col: 2 });
+  }
+
+  // Column 3: diverging from center — lerp 60% from cy toward exit spread
+  const exitAvg = exitYs.reduce((a, b) => a + b, 0) / (exitYs.length || 1);
+  const exitSpread = Math.max(40, ...exitYs.map(y => Math.abs(y - exitAvg))) * 1.1;
+  for (let i = 0; i < 3; i++) {
+    const frac = (i + 0.5) / 3;
+    const rawY = exitAvg - exitSpread + frac * exitSpread * 2;
+    const y = cy * 0.4 + rawY * 0.6; // pull 60% toward exit positions
+    targets.push({ x: colXs[3], y, col: 3 });
+  }
+
+  // Column 4: exit nodes (one per outgoing stream)
+  for (const ey of exitYs) {
+    targets.push({ x: colXs[4], y: ey, col: 4 });
+  }
+
+  // Clamp all targets inside circle
+  for (const t of targets) {
+    const dx = t.x - cx, dy = t.y - cy;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > innerR) {
+      const scale = innerR / d;
+      t.x = cx + dx * scale;
+      t.y = cy + dy * scale;
+    }
+  }
+
+  return targets;
+}
+
+function computeCircleNetEdges(nodes) {
+  const edges = [];
+  // Connect each node to 2 nearest in next column only (no same-column edges)
+  for (let i = 0; i < nodes.length; i++) {
+    const ni = nodes[i];
+    const candidates = [];
+    for (let j = 0; j < nodes.length; j++) {
+      if (i === j) continue;
+      const nj = nodes[j];
+      if (nj.col - ni.col === 1) {
+        const dy = Math.abs(ni.y - nj.y);
+        candidates.push({ j, dy });
+      }
+    }
+    candidates.sort((a, b) => a.dy - b.dy);
+    for (let c = 0; c < Math.min(2, candidates.length); c++) {
+      edges.push([i, candidates[c].j]);
+    }
+  }
+  return edges;
+}
+
 function lerpColor(a, b, t) {
   return {
     r: Math.round(a.r + (b.r - a.r) * t),
@@ -59,7 +141,8 @@ export default function StereogramCanvas() {
   const rafRef = useRef(null);
   const visibleRef = useRef(true);
   const streamsRef = useRef(null);
-  const colorsRef = useRef(null); // { current: [idx...], target: [idx...], lastSwap: timestamp, transitioning: false }
+  const colorsRef = useRef(null);
+  const circleNetRef = useRef(null); // { nodes: [{x,y,col}], edges: [[i,j]] }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -98,6 +181,7 @@ export default function StereogramCanvas() {
       canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!streamsRef.current) initStreams();
+      circleNetRef.current = null; // reset on resize, will rebuild dynamically
     }
     resize();
     window.addEventListener('resize', resize);
@@ -271,13 +355,103 @@ export default function StereogramCanvas() {
         }
       }
 
-      // ─── Central Circle (white fill + subtle stroke) ───
-      // White fill to mask streams behind content
+      // ─── Central Circle (white fill + dynamic neural network + stroke) ───
       ctx.globalAlpha = 1;
       ctx.fillStyle = 'rgb(255,255,255)';
       ctx.beginPath();
       ctx.arc(cx, cy, circleR, 0, Math.PI * 2);
       ctx.fill();
+
+      // ─── Calculate stream entry/exit Y positions ───
+      const entryYs = [];
+      for (let si = 0; si < streams.length; si++) {
+        const stream = streams[si];
+        const wave = Math.sin(now * stream.freq + stream.phase) * stream.amp;
+        const wave2 = Math.cos(now * stream.freq * 0.7 + stream.phase + 1) * stream.amp * 0.5;
+        const startY = stream.startY * h + wave;
+        const p0x = -20, p0y = startY;
+        const p1x = smooth.x * 0.45, p1y = smooth.y + wave2 * 0.6;
+        const p2x = smooth.x + (cx - smooth.x) * 0.5, p2y = cy + wave2 * 0.3;
+        const p3x = cx, p3y = cy;
+        const targetX = cx - circleR;
+        for (let st = 0; st <= 40; st++) {
+          const t = st / 40;
+          if (bezier(t, p0x, p1x, p2x, p3x) >= targetX) {
+            entryYs.push(bezier(t, p0y, p1y, p2y, p3y));
+            break;
+          }
+        }
+      }
+      if (entryYs.length === 0) entryYs.push(cy);
+
+      const exitYs = [];
+      for (let oi = 0; oi < outStreams.length; oi++) {
+        const os = outStreams[oi];
+        const sa = angleOffset + (oi - (OUT_STREAM_COUNT - 1) / 2) * fanSpread;
+        const rd = w - cx;
+        const wv = Math.sin(now * os.freq + os.phase) * os.amp;
+        const endY = cy + Math.sin(sa) * rd * 0.8 + wv * 0.4;
+        // Approximate exit Y at circle right boundary
+        const exitFrac = circleR / rd;
+        exitYs.push(cy + (endY - cy) * exitFrac * 1.2);
+      }
+      if (exitYs.length === 0) exitYs.push(cy);
+
+      // ─── Dynamic neural network inside circle ───
+      const targets = computeCircleNetTargets(cx, cy, circleR, entryYs, exitYs);
+
+      // Initialize or update circle network nodes
+      let cNet = circleNetRef.current;
+      if (!cNet || cNet.nodes.length !== targets.length) {
+        // Initialize: place nodes at target positions
+        cNet = {
+          nodes: targets.map(t => ({ x: t.x, y: t.y, col: t.col })),
+          edges: [],
+        };
+        cNet.edges = computeCircleNetEdges(cNet.nodes);
+        circleNetRef.current = cNet;
+      } else {
+        // Lerp current positions toward targets
+        for (let i = 0; i < cNet.nodes.length; i++) {
+          cNet.nodes[i].x += (targets[i].x - cNet.nodes[i].x) * CIRCLE_NET_LERP;
+          cNet.nodes[i].y += (targets[i].y - cNet.nodes[i].y) * CIRCLE_NET_LERP;
+          cNet.nodes[i].col = targets[i].col;
+        }
+        // Recompute edges based on updated positions
+        cNet.edges = computeCircleNetEdges(cNet.nodes);
+      }
+
+      // Draw clipped to circle
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, circleR - 1, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Edges — fade toward center
+      ctx.strokeStyle = 'rgb(26,26,46)';
+      ctx.lineWidth = 0.6;
+      for (const [ai, bi] of cNet.edges) {
+        const a = cNet.nodes[ai], b = cNet.nodes[bi];
+        const mx = (a.x + b.x) / 2;
+        const distFactor = Math.min(1, Math.abs(mx - cx) / circleR);
+        ctx.globalAlpha = 0.09 * (0.15 + 0.85 * distFactor);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+
+      // Nodes — fade toward center
+      ctx.fillStyle = 'rgb(26,26,46)';
+      for (const node of cNet.nodes) {
+        const distFactor = Math.min(1, Math.abs(node.x - cx) / circleR);
+        ctx.globalAlpha = 0.14 * (0.15 + 0.85 * distFactor);
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
 
       // Subtle stroke
       ctx.globalAlpha = 0.06;
