@@ -134,7 +134,7 @@ function lerpColor(a, b, t) {
   };
 }
 
-export default function StereogramCanvas() {
+export default function StereogramCanvas({ hideCircle = false }) {
   const canvasRef = useRef(null);
   const mouseRef = useRef({ x: -1, y: -1, active: false });
   const smoothRef = useRef({ x: -1, y: -1 });
@@ -143,6 +143,9 @@ export default function StereogramCanvas() {
   const streamsRef = useRef(null);
   const colorsRef = useRef(null);
   const circleNetRef = useRef(null); // { nodes: [{x,y,col}], edges: [[i,j]] }
+  const hideCircleRef = useRef(hideCircle);
+
+  hideCircleRef.current = hideCircle;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -356,6 +359,7 @@ export default function StereogramCanvas() {
       }
 
       // ─── Central Circle (white fill + dynamic neural network + stroke) ───
+      if (!hideCircleRef.current) {
       ctx.globalAlpha = 1;
       ctx.fillStyle = 'rgb(255,255,255)';
       ctx.beginPath();
@@ -460,6 +464,7 @@ export default function StereogramCanvas() {
       ctx.beginPath();
       ctx.arc(cx, cy, circleR, 0, Math.PI * 2);
       ctx.stroke();
+      } // end hideCircle check
 
       ctx.globalAlpha = 1;
     }

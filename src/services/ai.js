@@ -361,32 +361,44 @@ export async function getPersonalisedExamples(interventionType, nodeDescription,
     throw new Error('API key not configured.');
   }
 
-  const prompt = `You are a senior AI-UX designer. Generate 3-4 interaction-pattern inspirations for the following AI-UX intervention.
+  const industry = answers?.industry || 'general';
+  const problem = answers?.problemDescription || 'not specified';
+  const goals = Array.isArray(answers?.primaryGoals) ? answers.primaryGoals.join(', ') : 'not specified';
+  const risk = answers?.riskLevel || 'medium';
+  const taskType = answers?.taskType || 'not specified';
+  const dataAvail = answers?.dataAvailability || 'not specified';
 
-CONTEXT:
-- Domain: ${answers?.industry || 'general'}
-- User Problem: ${answers?.problemDescription || 'not specified'}
-- Primary Goals: ${Array.isArray(answers?.primaryGoals) ? answers.primaryGoals.join(', ') : 'not specified'}
-- Risk Level: ${answers?.riskLevel || 'medium'}
+  const prompt = `You are a senior AI-UX designer specialising in the ${industry} industry. Generate 3-4 interaction-pattern inspirations for the following AI-UX intervention.
+
+FULL CONTEXT:
+- Industry: ${industry}
+- Business Problem: ${problem}
+- Task Type: ${taskType}
+- Data Availability: ${dataAvail}
+- Primary Goals: ${goals}
+- Risk Level: ${risk}
 
 INTERVENTION TYPE: ${interventionType}
-STAGE DESCRIPTION: ${nodeDescription}
+STAGE: ${nodeDescription}
 
 Rules:
-- Focus purely on UX and interaction design, NOT business strategy or ROI.
-- Each inspiration must name a concrete UI pattern or micro-interaction (e.g., inline tooltip, skeleton loader, dismissible chip, confidence badge, progressive disclosure drawer).
-- "howItWorks" must describe what the USER sees and does — max 2 sentences.
-- "designTip" must be one actionable design heuristic the reader can apply today.
-- Keep everything concise. No marketing language. No metrics.
-- IMPORTANT: Vary your references widely. Avoid defaulting to Google, Apple, or Amazon products. Include lesser-known tools, startups, and industry-specific products. Each inspiration must reference a DIFFERENT product.
+- Each pattern MUST be specific to the "${industry}" industry and directly address this problem: "${problem}"
+- Pattern names must describe a concrete, INDUSTRY-SPECIFIC UI interaction — NOT generic patterns.
+  BAD example: "Inline tooltip" (too generic, applies to anything)
+  GOOD example for healthcare: "Drug interaction severity badge" (specific to the domain)
+  GOOD example for fintech: "Transaction anomaly confidence ribbon" (specific to the domain)
+- "howItWorks" must describe how THIS specific pattern helps solve the user's stated problem. Max 2 sentences. Must mention a specific UI element.
+- "designTip" must account for the ${risk} risk level and the user's goals (${goals}). One actionable sentence.
+- Reference real products used in ${industry} or adjacent industries. Prefer niche/specialist tools over household names. Each inspiration must reference a DIFFERENT product.
+- Focus on UX and interaction design. No business strategy, ROI, or marketing language.
 
 Return a JSON array (3-4 items):
 [
   {
-    "pattern": "Name of UI/interaction pattern (max 6 words)",
-    "reference": "Real product that uses this (just the name)",
-    "howItWorks": "What the user sees and does. Max 2 sentences. Must mention a specific UI element.",
-    "designTip": "One actionable design heuristic. Max 1 sentence."
+    "pattern": "Industry-specific UI/interaction pattern (max 6 words)",
+    "reference": "Real product name (prefer niche ${industry} tools)",
+    "howItWorks": "How this pattern solves the user's specific problem. Max 2 sentences.",
+    "designTip": "One actionable design heuristic considering ${risk} risk. Max 1 sentence."
   }
 ]`;
 

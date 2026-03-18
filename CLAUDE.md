@@ -44,6 +44,7 @@ VITE_GEMINI_API_KEY=<your-google-gemini-api-key>
 |------|------|
 | `src/hooks/useAssessment.jsx` | App-wide state via `useReducer` (screen, answers, results, errors) |
 | `src/hooks/useAIRecommendation.jsx` | AI request state machine (loading, progress, abort, retry) |
+| `src/hooks/useScrollReveal.js` | IntersectionObserver hook for scroll-triggered reveals; one-shot activation, respects `prefers-reduced-motion`; returns `{ ref, isVisible }` |
 
 ### Data (static domain knowledge)
 | File | Role |
@@ -72,6 +73,18 @@ VITE_GEMINI_API_KEY=<your-google-gemini-api-key>
 | `src/components/ExportPDF.jsx` | Comprehensive multi-section PDF report (cover, context, journey flow, full node details, why-not table) |
 | `src/components/WhyNot.jsx` | Collapsible "Why Not These?" section |
 | `src/components/AdminDashboard.jsx` | Session analytics table at `/admin` with CSV export |
+| `src/components/Landing.jsx` | Landing page assembler: HeroSection → HowItWorks → Showcase → ClosingSection + TaxonomyModal |
+
+### Landing Page Components (`src/components/landing/`)
+| File | Role |
+|------|------|
+| `HeroSection.jsx` | Hero banner: animated heading with word-by-word fade, simplified tagline, CTA buttons, journey preview (desktop/mobile variants), scroll hint. Desktop-only aurora canvas background. |
+| `StereogramCanvas.jsx` | 2D canvas: aurora borealis gradient streams (4 incoming taxonomy-colored + 3 outgoing accent) flowing left→cursor→center. Dynamic neural network inside white circle with converging/diverging topology, opacity fading toward center. Color rotation every 8s. Cursor-responsive bezier paths. Hidden on mobile. |
+| `HowItWorks.jsx` | Three-step process section: scroll-reveal animations, SVG connecting lines with draw animation, mobile connector dividers |
+| `Showcase.jsx` | Dual marquee ticker displaying all 10 AI-UX intervention types as glass-pill badges with colors and descriptors. Parallax scroll effect via rAF. |
+| `ClosingSection.jsx` | Footer CTA: animated counters (10 Types, 5 Autonomy Levels, 6 Questions), CTA button, Gemini badge, SavedAssessments list, radial accent glow background |
+| `NeuralCanvas.jsx` | Alternative canvas: 35 nodes with cursor magnetic pull, taxonomy color morphing, connection glow. Currently unused. |
+| `NeuralCanvasField.jsx` | Alternative canvas: 40 nodes with repulsion/wake effect, signal ripple rings. Currently unused. |
 
 ### Layout Utilities
 | File | Role |
@@ -101,6 +114,38 @@ The journey map uses **React Flow** for rendering and **Dagre** for layout:
 5. Clicking a node opens a detail panel with smooth scroll animation
 6. Detail panel loads personalised AI-UX pattern examples via `getPersonalisedExamples()` (falls back to static examples)
 7. Hint text ("Click any of the below steps...") is fixed at top with shimmer animation, unaffected by horizontal scroll
+
+## Landing Page Architecture
+The landing page uses a multi-section scroll layout with canvas-based background animation:
+
+### Aurora Gradient Streams (`StereogramCanvas.jsx`)
+1. **4 incoming streams** from left edge, each a different taxonomy color (randomly rotated every ~8s with 1.2s crossfade)
+2. Streams are cubic bezier curves rendered as soft radial gradient circles along the path
+3. Streams bend through the cursor position on their way to the center circle
+4. **3 outgoing streams** exit from center rightward in accent color (#d4764e) with slight variation
+5. Outgoing stream fan angle is controlled by cursor Y position
+6. When cursor is inactive, streams default to neutral paths and keep animating
+
+### Dynamic Neural Network (inside circle)
+1. White-filled circle masks streams behind hero content
+2. ~15 grey nodes arranged in 5 columns (entry → inner → center → inner → exit)
+3. Entry/exit nodes track stream positions at circle boundary
+4. Inner nodes converge toward center (funnel shape), then diverge toward exit
+5. Node positions **smoothly lerp** toward targets each frame (0.04 rate)
+6. Edges recomputed each frame (2 nearest connections per node to next column)
+7. Opacity fades toward center: `0.15 + 0.85 * |x - cx| / circleR`
+
+### Animation Patterns
+- CSS custom properties for stagger timing: `--reveal-delay`, `--word-delay`, `--node-delay`
+- `scroll-reveal` class + `useScrollReveal` hook for intersection-triggered animations
+- Marquee tickers with `--marquee-speed` variable
+- All animations respect `prefers-reduced-motion`
+
+### Responsive
+- Aurora canvas hidden on mobile (`hidden md:block`) — no cursor interaction on touch
+- Hero text scales: `text-4xl sm:text-5xl md:text-7xl lg:text-8xl`
+- CTA button full-width on mobile, auto on sm+
+- HowItWorks: 3-col grid (desktop) → 1-col stack (mobile)
 
 ## PDF Export
 The `ExportPDF.jsx` generates a comprehensive A4 report using `html2pdf.js`:
@@ -142,6 +187,12 @@ useAIRecommendation
 App.jsx
   ├── /admin → AdminDashboard (session analytics table)
   └── /* → AppRouter (landing → questionnaire → loading → results)
+        ├── Landing.jsx
+        │     ├── HeroSection (aurora canvas + CTA)
+        │     ├── HowItWorks (3-step process)
+        │     ├── Showcase (marquee tickers)
+        │     ├── ClosingSection (stats + CTA + SavedAssessments)
+        │     └── TaxonomyModal (overlay)
         └── On analysis complete → saveSessionToBlob() (fire-and-forget)
 ```
 

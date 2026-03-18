@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import StereogramCanvas from './landing/StereogramCanvas';
 
 const STAGES = [
   { threshold: 0, message: 'Analyzing your business context...' },
@@ -53,24 +54,13 @@ export default function AnalysisLoading({ progress, error, onRetry }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center">
-        {/* Animated compass icon */}
-        <div className="relative w-20 h-20 mx-auto mb-8">
-          <div className="absolute inset-0 rounded-full border-2 border-border-light" />
-          <div className="absolute inset-1 rounded-full border border-border" />
-          <svg
-            className="absolute inset-0 w-full h-full animate-spin-slow"
-            viewBox="0 0 80 80"
-            fill="none"
-          >
-            <line x1="40" y1="12" x2="40" y2="32" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinecap="round" />
-            <line x1="40" y1="48" x2="40" y2="68" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-accent" />
-          </div>
-        </div>
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center">
+      {/* Full-width aurora gradient animation */}
+      <div className="relative w-full h-44 mb-8">
+        <StereogramCanvas hideCircle />
+      </div>
+
+      <div className="max-w-md w-full text-center px-4">
 
         {/* Stage message */}
         <p className="font-heading text-lg text-primary mb-2 animate-pulse-soft" key={currentStage}>
