@@ -25,7 +25,15 @@ export default function JourneyMap({ journeyMap, answers }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [personalisedExamples, setPersonalisedExamples] = useState({});
   const [examplesLoading, setExamplesLoading] = useState(false);
+  const [showHint, setShowHint] = useState(true);
   const detailPanelRef = useRef(null);
+
+  // Auto-dismiss hint after 8 seconds
+  useEffect(() => {
+    if (!showHint) return;
+    const timer = setTimeout(() => setShowHint(false), 8000);
+    return () => clearTimeout(timer);
+  }, [showHint]);
 
   // Convert journeyMap data to React Flow format and run dagre layout
   const { rfNodes, rfEdges, layoutHeight, layoutWidth } = useMemo(() => {
@@ -40,6 +48,7 @@ export default function JourneyMap({ journeyMap, answers }) {
         color: getTypeColor(node.interventionType),
         typeName: getTypeName(node.interventionType),
         isActive: selectedNode === node.id,
+        showHint,
       },
     }));
 
@@ -57,10 +66,22 @@ export default function JourneyMap({ journeyMap, answers }) {
       }));
 
     const { nodes: layoutedNodes, edges: layoutedEdges, height, width } = getLayoutedElements(nodes, edges);
-    return { rfNodes: layoutedNodes, rfEdges: layoutedEdges, layoutHeight: height, layoutWidth: width };
-  }, [journeyMap, selectedNode]);
+
+    // Mark the first (leftmost) node for hint placement
+    const firstNodeId = layoutedNodes.reduce((min, n) =>
+      n.position.x < min.position.x ? n : min
+    , layoutedNodes[0])?.id;
+
+    const finalNodes = layoutedNodes.map(n => ({
+      ...n,
+      data: { ...n.data, isFirstNode: n.id === firstNodeId },
+    }));
+
+    return { rfNodes: finalNodes, rfEdges: layoutedEdges, layoutHeight: height, layoutWidth: width };
+  }, [journeyMap, selectedNode, showHint]);
 
   const onNodeClick = useCallback((event, node) => {
+    setShowHint(false);
     setSelectedNode(prev => {
       const newValue = prev === node.id ? null : node.id;
       if (newValue) {
@@ -321,13 +342,14 @@ export default function JourneyMap({ journeyMap, answers }) {
 
   return (
     <div>
-      <h3 className="font-heading text-lg text-primary mb-1">{journeyMap.title || 'User Journey Map'}</h3>
 
       <div className="bg-bg-card border border-border-light rounded-xl overflow-hidden">
-        {/* Hint text — fixed above scroll area */}
-        <p className="text-xs font-semibold text-center py-2.5 px-4 border-b border-border-light animate-hint-shimmer">
-          ✦ Click any of the below steps to explore AI recommendations &amp; AI-UX patterns ✦
-        </p>
+        {/* Fallback instruction — shown after tooltip dismisses, before a node is clicked */}
+        {!showHint && !selectedNode && (
+          <p className="text-xs font-semibold text-center py-2 px-4 border-b border-border-light animate-hint-shimmer">
+            ✦ Click any of the steps below to explore AI-UX patterns ✦
+          </p>
+        )}
 
         {/* Scrollable journey map area */}
         <div className="overflow-auto">

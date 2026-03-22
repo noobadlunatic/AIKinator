@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAssessment } from '../hooks/useAssessment';
 import { saveAssessment } from '../services/storage';
 import { generateShareUrl, copyToClipboard } from '../services/sharing';
-import { formatIndustryLabel, formatRiskLabel, formatGoalLabel } from '../utils/formatting';
 import WhyNot from './WhyNot';
 import JourneyMap from './JourneyMap';
 import ExportPDF from './ExportPDF';
@@ -19,10 +18,6 @@ export default function Results() {
   const [showTaxonomy, setShowTaxonomy] = useState(false);
   const [taxonomyType, setTaxonomyType] = useState(null);
   const [showWhyNot, setShowWhyNot] = useState(false);
-
-  const goals = Array.isArray(answers.primaryGoals)
-    ? answers.primaryGoals.map(formatGoalLabel).join(' and ')
-    : '';
 
   function handleSave() {
     const id = assessmentId || uuidv4();
@@ -67,13 +62,7 @@ export default function Results() {
             AIkinator
           </button>
 
-          <h1 className="font-heading text-3xl md:text-4xl text-primary mb-2">Your AI Journey</h1>
-
-          <p className="text-base text-text-muted leading-relaxed">
-            Based on your <span className="font-medium text-text">{formatIndustryLabel(answers.industry)}</span> context
-            with <span className="font-medium text-text">{formatRiskLabel(answers.riskLevel)}</span>
-            {goals && <> and goals of <span className="font-medium text-text">{goals}</span></>}
-          </p>
+          <h1 className="font-heading text-3xl md:text-4xl text-primary">{journeyMap?.title || 'Your AI Journey'}</h1>
 
           {window.location.hash.includes('shared=') && (
             <div className="mt-3 p-3 rounded-lg bg-confidence-mid/10 border border-confidence-mid/20">
