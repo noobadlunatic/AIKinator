@@ -57,10 +57,10 @@ VITE_GEMINI_API_KEY=<your-google-gemini-api-key>
 ### Key Components
 | File | Role |
 |------|------|
-| `src/components/JourneyMap.jsx` | React Flow–based interactive journey graph; Dagre layout; per-node detail panel with AI-UX patterns, autonomy scale, pros/cons, trust, implementation |
-| `src/components/JourneyMapNode.jsx` | Custom React Flow node with selection states, color dot, type label, micro-animations |
+| `src/components/JourneyMap.jsx` | React Flow–based interactive journey graph; Dagre layout; two-phase hint system (floating tooltip → shimmer banner); per-node detail panel with AI-UX patterns, autonomy scale, pros/cons, trust, implementation |
+| `src/components/JourneyMapNode.jsx` | Custom React Flow node with selection states, color dot, type label; renders floating hint tooltip above first node with bounce/float animations; pulsing orange glow on all nodes while hint is active |
 | `src/components/JourneyMapEdge.jsx` | Custom React Flow edge with smooth step paths and truncated labels with tooltips |
-| `src/components/Results.jsx` | Full-width single-column results: action bar + journey map + why-not |
+| `src/components/Results.jsx` | Full-width single-column results: AI-generated journey title as main heading, action bar + journey map + why-not |
 | `src/components/Questionnaire.jsx` | Single-page question flow (all 6 questions visible at once) |
 | `src/components/QuestionStep.jsx` | Individual question card (single/multi-select, textarea) |
 | `src/components/AnalysisLoading.jsx` | Animated loading screen during AI analysis |
@@ -113,7 +113,9 @@ The journey map uses **React Flow** for rendering and **Dagre** for layout:
 4. `JourneyMapEdge.jsx` renders smooth step edges with truncated labels (tooltip on hover)
 5. Clicking a node opens a detail panel with smooth scroll animation
 6. Detail panel loads personalised AI-UX pattern examples via `getPersonalisedExamples()` (falls back to static examples)
-7. Hint text ("Click any of the below steps...") is fixed at top with shimmer animation, unaffected by horizontal scroll
+7. Two-phase hint system for node click discovery:
+   - **Phase 1 (tooltip):** Floating pill with bouncing chevron arrow rendered above the first (leftmost) node inside `JourneyMapNode.jsx`; all nodes pulse with orange glow (`animate-node-hint-glow`); auto-dismisses on first node click or after 8 seconds
+   - **Phase 2 (banner):** After tooltip dismisses and before a node is clicked, a subtle shimmer text banner appears at the top of the journey map card
 
 ## Landing Page Architecture
 The landing page uses a multi-section scroll layout with canvas-based background animation:
